@@ -1,0 +1,38 @@
+{
+    "task_name": {
+        "type": "string",
+        "default": "task_follow"
+    },
+    "x": {
+        "type": "integer",
+        "default": 0
+    },
+    "y": {
+        "type": "integer",
+        "default": 0
+    },
+    "width": {
+        "type": "integer",
+        "default": 320
+    },
+    "height": {
+        "type": "integer",
+        "default": 320
+    },
+    "radius": {
+        "type": "integer",
+        "default": 20
+    },
+    "stroke_color": {
+        "type": "color",
+        "default": "#1d90ff"
+    },
+    "stroke": {
+        "type": "integer",
+        "default": 2
+    },
+    "color": {
+        "type": "color",
+        "default": "#1d90ff"
+    }
+}

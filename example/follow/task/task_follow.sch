@@ -1,0 +1,1 @@
+move([uniform(-1,1), uniform(-1,1)]) @ [1]:*

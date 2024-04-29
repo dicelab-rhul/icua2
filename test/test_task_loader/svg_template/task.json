@@ -1,0 +1,8 @@
+{
+    "task_name": "task",
+    "x": 10,
+    "y": 10,
+    "radius": 10,
+    "stroke_color": "#ffffff",
+    "color": "#000000"
+}

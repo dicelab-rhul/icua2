@@ -1,0 +1,305 @@
+import os
+import json
+from pathlib import Path
+from typing import List, Dict, Any
+from collections import defaultdict
+
+from lxml import etree
+from jinja2 import Template
+from deepmerge import always_merger
+from cerberus import rules_set_registry, Validator
+
+from ._error import ICUAInternalError
+from ._const import DEFAULT_SVG_INDEX_FILE
+from ._logging import LOGGER
+
+# add extra validation rules to cererbus
+rules_set_registry.add(
+    "hex_color", {"type": "string", "regex": r"^#?[0-9a-fA-F]+$", "default": "#ff69b4"}
+)
+
+EXT_SVG = "svg"
+EXT_SVGTEMPLATE = "svg.jinja"
+EXT_SCHEMA = "schema.json"
+EXT_CONTEXT = "json"
+
+
+class MultiTaskLoader:
+
+    def __init__(
+        self,
+        index_file: str = None,
+        index_context_file=None,
+        index_context_schema_file=None,
+        index_context=None,
+    ):
+        super().__init__()
+        self._index_file = MultiTaskLoader.resolve_path(
+            index_file if index_file else DEFAULT_SVG_INDEX_FILE
+        )
+        LOGGER.debug("Multi-task index file: `%s`", self._index_file)
+        self._index_context = MultiTaskLoader.load_context(
+            context_file=index_context_file,
+            schema_file=index_context_schema_file,
+            context=index_context,
+        )
+        self._tasks = {}
+        self._enabled_tasks = {}
+
+    def load_task(
+        self,
+        path: str,
+        context_file: str = None,
+        schema_file: str = None,
+        context: Dict[str, Any] = None,
+        enabled: bool = True,
+        name: str = None,
+    ):
+        path = MultiTaskLoader.resolve_path(path)
+        suffix = MultiTaskLoader.get_full_suffix(path)
+        if name is None:
+            name = MultiTaskLoader.get_filename(path)
+        if suffix:
+            # explicit file was given
+            schema_file = MultiTaskLoader.resolve_file_with_extension(
+                schema_file, [EXT_SCHEMA]
+            )
+            context_file = MultiTaskLoader.resolve_file_with_extension(
+                context_file, [EXT_CONTEXT]
+            )
+            task = MultiTaskLoader._load_from_task_files(
+                name,
+                {suffix: path, EXT_CONTEXT: context_file, EXT_SCHEMA: schema_file},
+                context=context,
+            )
+        else:
+            # this is a directory to search for the relevant files
+            task_files = MultiTaskLoader._get_task_files_from_directory(path)
+            if len(task_files) > 1:
+                raise ValueError(
+                    f"Multiple tasks: {list(task_files.keys())} were found in directory: {path}, files for the same task should share their name.\nIf multiple valid tasks are present, use `load_tasks` instead."
+                )
+            if len(task_files) == 0:
+                raise FileNotFoundError(
+                    f"No task files were found in directory: {path}"
+                )
+            key = next(iter(task_files))
+            task = MultiTaskLoader._load_from_task_files(
+                name, task_files[key], context=context
+            )
+        # format the task, removing empty lines etc.
+        parser = etree.XMLParser(remove_blank_text=True)
+        task_root = etree.fromstring(task, parser=parser)
+        task = etree.tostring(task_root, pretty_print=True, method="xml").decode(
+            "utf-8"
+        )
+        self._tasks[name] = task
+        self._enabled_tasks[name] = enabled
+
+    def load_tasks(
+        self,
+        task_paths: List[str] | Dict[str, str],
+        enabled: List[str] | Dict[str, bool] = None,
+    ):
+        raise NotImplementedError("TODO")
+
+    def get_index(self):
+        # add tasks to the index context if they are enabled
+        task_context = {
+            name: data
+            for name, data in self._tasks.items()
+            if self._enabled_tasks[name]
+        }
+        index = Template(MultiTaskLoader.load_svg(self._index_file)).render(
+            **self._index_context, **task_context
+        )
+        # TODO prettify? maybe use beautiful soup?
+        return index
+
+    def enable_task(self, task):
+        if task not in self._tasks:
+            raise ICUAInternalError(
+                f"Task: {task} was not found in {list(self._tasks.keys())}"
+            )
+        self._enabled_tasks[task] = True
+
+    def disable_task(self, task):
+        if task not in self._tasks:
+            raise ICUAInternalError(
+                f"Task: {task} was not found in {list(self._tasks.keys())}"
+            )
+        self._enabled_tasks[task] = False
+
+    def get_task(self, name):
+        return self._tasks.get(name, None)
+
+    def __iter__(self):
+        yield from self._tasks.items()
+
+    @staticmethod
+    def load_json_with_schema(
+        file: str, schema_file: str = None, context: Dict[str, Any] = None
+    ):
+        with open(file, "r", encoding="UTF-8") as json_file:
+            _context = json.load(json_file)
+        if context:
+            _context = always_merger.merge(_context, context)
+
+        if schema_file:
+            return MultiTaskLoader.load_schema(schema_file, context=_context)
+        else:
+            LOGGER.warning(
+                "Content of file `%s` was not validated as no schema was provided.",
+                Path(file).name,
+            )
+            return _context
+
+    @staticmethod
+    def load_schema(schema_file: str, context: Dict[str, Any] = None):
+        if context is None:
+            context = dict()
+        with open(schema_file, "r", encoding="UTF-8") as json_file:
+            schema = json.load(json_file)
+        errors = MultiTaskLoader._validate_schema(schema)
+        if errors:
+            error_str = "\n    - ".join(errors)
+            raise ValueError(f"Invalid schema, see errors:\n    - {error_str}")
+
+        validator = Validator(schema)
+        context = validator.normalized(context)  # set default values etc.
+        if validator.validate(context):
+            return context
+        else:
+            errors = []
+            for k, errs in validator.errors.items():
+                for v in errs:
+                    errors.append(f"Key: `{k}` {v}")
+            error_str = "\n    - ".join(errors)
+            raise ValueError(
+                f"Context is not valid under the provided schema: `{Path(schema_file).name}`, see issues below:\n    - {error_str}"
+            )
+
+    @staticmethod
+    def load_svg(path: str):
+        return MultiTaskLoader.load_text(path)
+
+    @staticmethod
+    def load_text(path: str, encoding: str = "UTF-8"):
+        with open(path, "r", encoding=encoding) as svg_file:
+            return svg_file.read()
+
+    @staticmethod
+    def load_context(
+        context_file: str = None,
+        schema_file: str = None,
+        context: Dict[str, Any] = None,
+    ):
+        if context_file:
+            # load context from the context file
+            context = MultiTaskLoader.load_json_with_schema(
+                context_file, schema_file=schema_file, context=context
+            )
+        elif schema_file:
+            # load context from the schema file, this file should contain "default" values which will be used as the context
+            context = MultiTaskLoader.load_schema(schema_file, context=context)
+        elif not context:
+            context = dict()
+        errors = MultiTaskLoader._validate_context_keys(context)
+        if errors:
+            error_str = "\n    - ".join(errors)
+            raise ValueError(f"Invalid context, see errors:\n    - {error_str}")
+        return context
+
+    @staticmethod
+    def load_svg_from_template(
+        file: str,
+        context_file: str = None,
+        schema_file: str = None,
+        context: Dict[str, Any] = None,
+    ):
+        template_context = MultiTaskLoader.load_context(
+            context_file=context_file, schema_file=schema_file, context=context
+        )
+        template = MultiTaskLoader.load_svg(file)
+        template = Template(template)
+        return template.render(template_context)
+
+    @staticmethod
+    def _validate_context_keys(context: Dict[str, Any]):
+        errors = []
+        for key, _ in context.items():
+            # Check if the key contains a hyphen, this will not be compatible with jinja variables...
+            if "-" in key:
+                errors.append(f"Invalid character '-' found in context key: '{key}'.")
+        return errors
+
+    @staticmethod
+    def _validate_schema(schema: Dict[str, Any]):
+        errors = []
+        errors.extend(MultiTaskLoader._validate_context_keys(schema))
+        for key, rules in schema.items():
+            # Check if default value is set
+            if "default" not in rules:
+                errors.append(f"No default value specified for field: '{key}'")
+        return errors
+
+    @staticmethod
+    def _get_task_files_from_directory(path: str):
+        # TODO use pathlib instead of os?
+        # A dictionary to hold lists of files with the same name but different extensions
+        files_grouped = defaultdict(dict)
+        for entry in os.listdir(path):
+            full_path = os.path.join(path, entry)
+            if os.path.isfile(full_path):
+                file_name, *file_extension = entry.split(".")
+                file_extension = ".".join(file_extension)
+                files_grouped[file_name][file_extension] = full_path
+        return files_grouped
+
+    @staticmethod
+    def _load_from_task_files(
+        name: str, files: Dict[str, str], context: Dict[str, Any] = None
+    ):
+        # files: suffix -> path
+        if EXT_SVG in files:
+            assert not EXT_SVGTEMPLATE in files
+            return MultiTaskLoader.load_svg(files[EXT_SVG])
+        elif EXT_SVGTEMPLATE in files:
+            assert not EXT_SVG in files
+            return MultiTaskLoader.load_svg_from_template(
+                files[EXT_SVGTEMPLATE],
+                context_file=files.get(EXT_CONTEXT, None),
+                schema_file=files.get(EXT_SCHEMA, None),
+                context=context,
+            )
+        raise ValueError(
+            f"Failed to load task: {name}, no file with the extensions: {[EXT_SVG, EXT_SVGTEMPLATE]} was found."
+        )
+
+    @staticmethod
+    def resolve_file_with_extension(file: str | None, extensions: List[str]):
+        if not file is None:
+            file = MultiTaskLoader.resolve_path(file)
+            suffix = MultiTaskLoader.get_full_suffix(file)
+            if Path(file).is_dir():
+                raise ValueError(f"Expected file but {file} is a directory.")
+            if suffix not in extensions:
+                raise ValueError(f"Invalid extension `{suffix}` for file: {file}")
+            return file
+        return None
+
+    @staticmethod
+    def resolve_path(path: str):
+        return str(Path(path).expanduser().resolve())
+
+    @staticmethod
+    def get_full_suffix(file: str | Path):
+        if isinstance(file, str):
+            file = Path(file)
+        return ".".join(file.name.split(".")[1:])
+
+    @staticmethod
+    def get_filename(file: str | Path):
+        if isinstance(file, str):
+            file = Path(file)
+        return file.name.split(".")[0]
