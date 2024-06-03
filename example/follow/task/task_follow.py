@@ -1,13 +1,16 @@
-from icua2.agent import agent, attempt, Actuator
-from star_ray.plugin.xml import QueryXPath
+from icua2.agent import agent_actuator, attempt, Actuator
+from star_ray_xml import update, Expr
 
 
-@agent
+@agent_actuator
 class FollowActuator(Actuator):
 
     @attempt
     def move(self, direction):
-        print(direction)
-        return QueryXPath(
-            xpath="//svg/circle", attributes=dict(x=direction[0], y=direction[1])
+        # print(direction)
+        x = Expr("{value} + {direction}", direction=direction[0])
+        y = Expr("{value} + {direction}", direction=direction[1])
+        return update(
+            xpath="//svg:svg/svg:circle",
+            attrs=dict(cx=x, cy=y),
         )

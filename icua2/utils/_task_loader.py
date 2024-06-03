@@ -5,6 +5,7 @@ import sys
 from jinja2 import Template
 from functools import wraps
 from pathlib import Path
+from lxml import etree
 
 from star_ray.utils import ValidatedEnvironment, TemplateLoader
 from star_ray.agent import Actuator
@@ -12,7 +13,7 @@ from ._logging import LOGGER
 from ._error import TaskConfigError
 from ._schedule import ScheduledAgentFactory
 
-__all__ = ("avatar", "agent", "TaskLoader")
+__all__ = ("avatar_actuator", "agent_actuator", "TaskLoader")
 
 EXT_SCHEMA = ".schema.json"
 EXT_CONTEXT = ".json"
@@ -25,7 +26,7 @@ CLSATTR_IS_AVATAR_ACTUATOR = "__is_avatar_actuator__"
 CLSATTR_IS_AGENT_ACTUATOR = "__is_agent_actuator__"
 
 
-def avatar(cls: Type[Actuator]):
+def avatar_actuator(cls: Type[Actuator]):
     if not issubclass(cls, Actuator):
         raise TaskConfigError(
             f"Invalid use of @avatar, {cls} must derive `{Actuator.__name__}`"
@@ -34,7 +35,7 @@ def avatar(cls: Type[Actuator]):
     return cls
 
 
-def agent(cls: Type[Actuator]):
+def agent_actuator(cls: Type[Actuator]):
     if not issubclass(cls, Actuator):
         raise TaskConfigError(
             f"Invalid use of @agent, {cls} must derive `{Actuator.__name__}`"
@@ -45,23 +46,42 @@ def agent(cls: Type[Actuator]):
 
 class _Task:
 
-    def __init__(self, state: Template, agent_factory: Any, avatar_factory: Any):
+    def __init__(self, state: Template, agent_factory: Any, avatar_actuators: Any):
         self._state = state
         self._agent_factory = agent_factory if agent_factory else lambda: None
-        self._avatar_factory = avatar_factory if avatar_factory else lambda: None
+        self._avatar_actuators = avatar_actuators if avatar_actuators else []
 
-    def new_agent(self):
+    def get_agent(self):
         return self._agent_factory()
 
-    def new_avatar(self):
-        return self._avatar_factory()
+    def get_avatar_actuators(self):
+        return self._avatar_actuators
+
+    def get_xml(self, context: Dict[str, Any] = None):
+        if context is None:
+            context = dict()
+        return etree.canonicalize(self._state.render(context))
+
+
+class _DefaultFuncs:
+    @staticmethod
+    def min(*args):
+        return min(args)
+
+    @staticmethod
+    def max(*args):
+        return max(args)
 
 
 class TaskLoader:
 
     def __init__(self):
         super().__init__()
-        self._jinja_env = ValidatedEnvironment(loader=TemplateLoader())
+        self._jinja_env = ValidatedEnvironment(
+            loader=TemplateLoader(),
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
 
     def register_task(
         self,
@@ -96,8 +116,7 @@ class TaskLoader:
             agent_actuators,
             suppress_warnings=suppress_warnings,
         )
-        avatar_factory = None
-        return _Task(state, agent_factory, avatar_factory)
+        return _Task(state, agent_factory, avatar_actuators)
 
     def load_state(
         self, task_name: str, files: Dict[str, str], suppress_warnings: bool = False
@@ -128,7 +147,7 @@ class TaskLoader:
             )
             if not actuator_classes["agent"] and not actuator_classes["avatar"]:
                 raise TaskConfigError(
-                    f"No actuator classes were found in task plugin, did you forget to tag with @{agent.__name__} or @{avatar.__name__}?"
+                    f"No actuator classes were found in task plugin, did you forget to tag with @{agent_actuator.__name__} or @{avatar_actuator.__name__}?"
                 )
             agent_actuators.extend(actuator_classes["agent"])
             avatar_actuators.extend(actuator_classes["avatar"])
@@ -150,7 +169,7 @@ class TaskLoader:
     def get_default_funcs(self):
         from random import randint, uniform
 
-        return [min, max, randint, uniform]
+        return [_DefaultFuncs.min, _DefaultFuncs.max, randint, uniform]
 
     @LOGGER.indent
     def load_schedule(
@@ -312,8 +331,8 @@ def _get_actuator_classes(
                 LOGGER.warning(
                     "An Actuator definition was found: `%s`, but it was not tagged as @%s or @%s.",
                     cls.__name__,
-                    agent.__name__,
-                    avatar.__name__,
+                    agent_actuator.__name__,
+                    avatar_actuator.__name__,
                 )
     return actuators
 

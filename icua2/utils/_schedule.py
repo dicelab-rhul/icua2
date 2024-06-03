@@ -3,7 +3,8 @@ import aiostream
 import itertools
 from typing import List, Dict, Callable, Set, Type, Any
 from types import MethodType
-from star_ray import Agent, Actuator
+from star_ray.agent import Agent, Actuator
+from star_ray.event import ErrorObservation
 from pyfuncschedule import parser as schedule_parser, Schedule, ScheduleParser
 from ._logging import LOGGER
 from ._error import TaskConfigError
@@ -18,19 +19,27 @@ class ScheduledAgent(Agent):
         self._iter_context = None  # set on initialise
         self._iter_schedules = None  # set on initialise
 
-    async def __initialise__(self):
+    async def __initialise__(self, state):
         self._iter_context = aiostream.stream.merge(*self._schedules).stream()
         self._iter_schedules = await self._iter_context.__aenter__()
 
+    # TODO implement proper execution scheduling in the environment!! we cant have each agent awaiting here blocking each other
     async def __cycle__(self):
+        # check if there were any errors from actuators
+        for actuator in self.actuators:
+            for obs in actuator.iter_observations():
+                if isinstance(obs, ErrorObservation):
+                    raise obs.exception()
+
         try:
             # this will await the next action from the collection of schedules
             await self._iter_schedules.__anext__()
         except StopAsyncIteration:
             await self._iter_context.__aexit__(None, None, None)
-        except Exception:  # pylint: disable=W0718
+        except Exception as e:  # pylint: disable=W0718
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)
+            raise e
 
     async def __sense__(self, state, *args, **kwargs):
         return super().__sense__(state, *args, **kwargs)

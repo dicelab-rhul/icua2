@@ -2,15 +2,15 @@
 
 from star_ray.agent import Actuator, attempt
 from star_ray.event import Action
-from icua2.utils._task_loader import avatar, agent
+from icua2.utils._task_loader import avatar_actuator, agent_actuator
 
 
-@avatar
+@avatar_actuator
 class AvatarActuator(Actuator):
     pass
 
 
-@agent
+@agent_actuator
 class TaskActuator(Actuator):
 
     @attempt

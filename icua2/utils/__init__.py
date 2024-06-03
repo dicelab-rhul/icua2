@@ -1,6 +1,7 @@
 from ._error import ICUAInternalError
 from ._logging import LOGGER
 from ._task_loader import TaskLoader, _Task
+from ._geom import bounding_rectangle
 
 from ._const import (
     DEFAULT_STATIC_PATH,

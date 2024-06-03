@@ -1,6 +1,11 @@
 from typing import List, Dict, Callable
+import asyncio
+
+from icua2.utils._schedule import ScheduledAgent
 from star_ray import Environment, Agent, Actuator
 from .ambient import MultiTaskAmbient
+from ..utils import LOGGER
+import time
 
 
 class MultiTaskEnvironment(Environment):
@@ -26,9 +31,9 @@ class MultiTaskEnvironment(Environment):
             wait=wait,
             sync=True,
         )
-        # self._webserver = MatbiiWebServer(ambient, MatbiiAvatar.get_factory())
 
     def enable_task(self, task_name: str):
+        # TODO what if this is remote!
         self._ambient._inner.enable_task(task_name)
 
     def disable_task(self, task_name: str):
@@ -40,26 +45,52 @@ class MultiTaskEnvironment(Environment):
         path: str,
         agent_actuators: List[Callable[[], Actuator]] = None,
         avatar_actuators: List[Callable[[], Actuator]] = None,
+        enable: bool = False,
     ):
         self._ambient._inner.register_task(
             name,
             path,
             agent_actuators=agent_actuators,
             avatar_actuators=avatar_actuators,
+            enable=enable,
         )
 
-    def get_schedule(self):
-        tasks = super().get_schedule()
-        return tasks
-        # run the web server :) it is running on the main thread here, so we can just run it as a task.
-        # there may be more complex setups where it is run remotely... TODO think about how this might be done.
-        # return tasks
-        # webserver_task = asyncio.create_task(self._webserver.run(port=8888))
-        # return [webserver_task, *tasks]
+    def run(self):
+        async def _run():
+            event_loop = asyncio.get_event_loop()
+            await self.__initialise__(event_loop)
+            await asyncio.gather(*self.get_schedule())
 
-    async def step(self) -> bool:
-        self._cycle += 1
-        # return False if the simulation should stop? TODO more info might be useful...
-        agents = self._ambient.get_agents()
-        await self._step(agents)
-        return True
+        asyncio.run(_run())
+
+    async def __initialise__(self, event_loop):
+        await self._ambient.__initialise__()
+        await self.initialise_agents()
+        LOGGER.debug("Environment initialised successfully.")
+
+    def get_schedule(self):
+        tasks = []
+        for agent in self._ambient.get_agents():
+            if isinstance(agent.get_inner(), ScheduledAgent):
+                # schedule agents are fully async, they will wait to execute according to their schedule.
+                tasks.append(asyncio.create_task(self.run_agent_no_wait(agent)))
+            else:
+                tasks.append(asyncio.create_task(self.run_agent(agent)))
+        return tasks
+
+    async def run_agent_no_wait(self, agent) -> bool:
+        # TODO check that the agent is alive...
+        while self._ambient.is_alive:  # check that the agent is alive...?
+            await agent.__sense__(self._ambient)
+            await agent.__cycle__()
+            await agent.__execute__(self._ambient)
+
+    async def run_agent(self, agent) -> bool:
+        # TODO check that the agent is alive...
+        while self._ambient.is_alive:  # check that the agent is alive...?
+            t = time.time()
+            await asyncio.sleep(self._wait)
+            await agent.__sense__(self._ambient)
+            await agent.__cycle__()
+            await agent.__execute__(self._ambient)
+            print(time.time() - t)
