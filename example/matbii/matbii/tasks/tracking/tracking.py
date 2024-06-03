@@ -79,7 +79,7 @@ class TargetMoveAction(Action):
         new_y = Template(
             "max(min({y} + {dy}, {y2} - {height}), {y1})", dy=dy, y1=x1, y2=y2
         )
-        result = state.update(
+        return state.update(
             update(
                 xpath="//svg:svg/svg:svg/svg:svg[@id='tracking_target']",
                 attrs=dict(x=new_x, y=new_y),

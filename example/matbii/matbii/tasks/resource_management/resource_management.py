@@ -15,18 +15,21 @@ ALL = "*"
 
 class ResourceManagementActuator(Actuator):
 
-    # @attempt
-    # def burn_fuel(self, target: int | str, burn: float):
-    #     return BurnFuelAction(target=target, burn=burn)
+    @attempt
+    def burn_fuel(self, target: int | str, burn: float):
+        return BurnFuelAction(target=target, burn=burn)
 
-    # @attempt
-    # def pump_fuel(self, target: int | str, flow: float):
-    #     return PumpFuelAction(target=target, flow=flow)
+    @attempt
+    def pump_fuel(self, target: int | str, flow: float):
+        return PumpFuelAction(target=target, flow=flow)
+
+    @attempt
+    def toggle_pump_failure(self, target: int | str):
+        return TogglePumpFailureAction(target=target)
 
     @attempt
     def toggle_pump(self, target: int | str):
-        # return SetPumpAction(target=target, state=2)
-        return TogglePumpFailureAction(target=target)
+        return TogglePumpAction(target=target)
 
 
 class PumpAction(Action):
@@ -108,176 +111,136 @@ class TogglePumpAction(PumpAction):
     def new(target: int | str):
         return TogglePumpAction(target=target)
 
-    def to_xml_queries(self, state: XMLState) -> List[QueryXPath]:
+    def execute(self, xml_state: XMLState):
         # check if pump is in a failure state
         pump_id = f"pump-{self.target}-button"
-        response = state.__select__(
-            QueryXML(element_id=pump_id, attributes=["data-state"])
-        )
-        state = response.values["data-state"]
-        if state == PumpAction.FAILURE:
-            return []  # toggle failed, the pump is currently in failure!
-        return [
-            QueryXMLTemplated(
-                f"pump-{self.target}-button",
-                {
-                    "data-state": "{{(1 - data_state)}}",
-                    "fill": "{{data_colors[(1 - data_state)]}}",
+        # 0 -> 1, 1 -> 0, 2 -> 2 (cannot toggle if the pump is in failure)
+        new_state = "1-{data-state}%3"
+        xml_state.update(
+            update(
+                xpath=f"//*[@id='{pump_id}']",
+                attrs={
+                    "data-state": Template(new_state),
+                    # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
+                    "fill": Template("{data-colors}[{data-state}]"),
                 },
             )
+        )
+
+
+class TogglePumpFailureAction(PumpAction):
+
+    @staticmethod
+    def new(target: int):
+        return TogglePumpFailureAction(target=target)
+
+    def execute(self, xml_state: XMLState):
+        pump_id = f"pump-{self.target}-button"
+        # 0 -> 2, 1 -> 2, 2 -> 0
+        new_state = "2 * (1 - {data-state} // 2)"
+        xml_state.update(
+            update(
+                xpath=f"//*[@id='{pump_id}']",
+                attrs={
+                    "data-state": Template(new_state),
+                    # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
+                    "fill": Template("{data-colors}[{data-state}]"),
+                },
+            )
+        )
+
+
+class PumpFuelAction(PumpAction):
+
+    flow: float
+    XPATH_PUMP: ClassVar[str] = "//svg:rect[@id='pump-%s-button']"
+
+    def execute(self, xml_state: XMLState):
+        if self.is_pump_on(xml_state, self.target):
+            id_from = self.target[0]
+            id_to = self.target[1]
+
+            _from = _get_tank_data(xml_state, id_from)
+            if _from["data-level"] <= 0:
+                return  # there is no fuel to transfer
+            _to = _get_tank_data(xml_state, id_to)
+            remain = _to["data-capacity"] - _to["data-level"]
+            if remain <= 0:
+                return  # the tank is full
+
+            # compute flow value and new levels
+            # TODO potential weird bug here if _from["data-level"] is lower than flow for an infinite tank
+            flow = min(_from["data-level"], remain, self.flow)
+            new_to_level = _to["data-level"] + self.flow
+            _update_tank_level(xml_state, id_to, _to, new_to_level)
+            if not id_from in TANK_INF_IDS:
+                # "from" tank is a normal tank, fuel should be removed
+                new_from_level = _from["data-level"] - self.flow
+                _update_tank_level(xml_state, id_from, _from, new_from_level)
+
+    def is_pump_on(self, xml_state: XMLState, target: str):
+        xpath = PumpFuelAction.XPATH_PUMP % target
+        data_state = xml_state.select(select(xpath=xpath, attrs=["data-state"]))[0][
+            "data-state"
         ]
+        return data_state == PumpAction.ON
 
 
-# class TogglePumpFailureAction(PumpAction):
+class BurnFuelAction(Action):
 
-#     @staticmethod
-#     def new(target: int):
-#         return TogglePumpFailureAction(target=target)
+    target: str
+    burn: float
 
-#     def to_xml_queries(self, _: XMLState) -> List[QueryXPath]:
-#         # update pump state: 0 or 1 -> 2, 2 -> 0
-#         calc = "2 * (1 - data_state // 2)"
-#         return [
-#             QueryXMLTemplated(
-#                 f"pump-{self.target}-button",
-#                 {
-#                     "data-state": "{{%s}}" % calc,
-#                     "fill": "{{data_colors[%s]}}" % calc,
-#                 },
-#             )
-#         ]
+    @validator("target", pre=True, always=True)
+    @classmethod
+    def _validate_target(cls, value: int | str) -> str:
+        if isinstance(value, int):
+            value = TANK_MAIN_IDS[value]
+        if isinstance(value, str):
+            if value in TANK_MAIN_IDS + [ALL]:
+                return value
+        raise ValueError(
+            f"Invalid tank {value}, must be one of {TANK_MAIN_IDS + [ALL]}"
+        )
 
+    def execute(self, xml_state: XMLState):
+        targets = self.get_targets()
+        for target in targets:
+            values = _get_tank_data(xml_state, target)
+            if values["data-level"] == 0:
+                continue  # fuel is already 0, no fuel to burn
+            new_level = max(values["data-level"] - self.burn, 0)
+            _update_tank_level(xml_state, target, values, new_level)
 
-# class PumpFuelAction(PumpAction):
-
-#     flow: float
-
-#     # XPATH_PUMP_ALL_ON: ClassVar[str] = (
-#     #     "//svg:svg[@id='task_resource_management']"
-#     #     + "//svg:svg[contains(@id, 'pump-')]"
-#     #     + f"/svg:rect[@data-state='{PumpAction.ON}']"
-#     # )
-#     XPATH_PUMP_ON: ClassVar[str] = (
-#         "//svg:svg[@id='task_resource_management']"
-#         + "//svg:svg[contains(@id, 'pump-')]"
-#         + "/svg:rect[@id='pump-%s-button']"
-#     )
-
-#     def to_xml_queries(self, state: XMLState) -> List[QueryXPath]:
-#         if self.is_pump_on(state, self.target):
-#             return PumpFuelAction._get_xml_query(state, self.target, self.flow)
-#         return []
-
-#     def is_pump_on(self, state, target):
-#         xpath = PumpFuelAction.XPATH_PUMP_ON % target
-#         query = QueryXPath(xpath=xpath, attributes=["data-state"])
-#         data_state = state.__select__(query).values[0]["data-state"]
-#         return data_state == PumpAction.ON
-
-#     # def _get_all_on_pumps(self, state):
-#     #     # xpath = "//svg[@id='task_resource_management']"
-#     #     values = state.__select__(
-#     #         QueryXPath(xpath=PumpFuelAction.XPATH_PUMP_ON, attributes=["id"])
-#     #     ).values
-#     #     return [v["id"].split("-", 1)[1][:2] for v in values]
-
-#     @staticmethod
-#     def _get_xml_query(state, target, flow):
-
-#         id_from = target[0]
-#         id_to = target[1]
-
-#         _from = _get_tank_data(id_from, state)
-
-#         if _from["data-level"] <= 0:
-#             return []  # there is no fuel to transfer
-#         _to = _get_tank_data(id_to, state)
-
-#         remain = _to["data-capacity"] - _to["data-level"]
-#         if remain <= 0:
-#             return []  # the tank is full
-
-#         # compute flow value and new levels
-#         flow = min(_from["data-level"], remain, flow)
-#         new_to_level = _to["data-level"] + flow
-#         to_actions = _get_fuel_level_actions(
-#             id_to, new_to_level, _to["height"], _to["data-capacity"]
-#         )
-#         if id_from in TANK_INF_IDS:
-#             # "from" tank has an infinite supply, dont remove fuel
-#             return to_actions
-#         else:
-#             # "from" tank is a normal tank, fuel should be removed
-#             new_from_level = _from["data-level"] - flow
-#             return [
-#                 *to_actions,
-#                 *_get_fuel_level_actions(
-#                     id_from, new_from_level, _from["height"], _from["data-capacity"]
-#                 ),
-#             ]
+    def get_targets(self):
+        if self.target != ALL:
+            targets = [self.target]
+        else:
+            targets = TANK_MAIN_IDS
+        return targets
 
 
-# class BurnFuelAction(Action):
-
-#     target: str
-#     burn: float
-
-#     @validator("target", pre=True, always=True)
-#     @classmethod
-#     def _validate_target(cls, value: int | str) -> str:
-#         if isinstance(value, int):
-#             value = TANK_MAIN_IDS[value]
-#         if isinstance(value, str):
-#             if value in TANK_MAIN_IDS + [ALL]:
-#                 return value
-#         raise ValueError(
-#             f"Invalid tank {value}, must be one of {TANK_MAIN_IDS + [ALL]}"
-#         )
-
-#     def to_xml_queries(self, state: XMLState) -> List[QueryXPath]:
-#         actions = []
-#         if self.target != ALL:
-#             targets = [self.target]
-#         else:
-#             targets = TANK_MAIN_IDS
-#         for target in targets:
-#             actions.extend(
-#                 BurnFuelAction._get_xml_burn_queries(state, target, self.burn)
-#             )
-#         return actions
-
-#     @staticmethod
-#     def _get_xml_burn_queries(state, target, burn):
-#         values = _get_tank_data(target, state)
-#         if values["data-level"] == 0:
-#             # nothing needs to be done, there is no fuel left
-#             return []
-#         new_level = max(values["data-level"] - burn, 0)
-#         return _get_fuel_level_actions(
-#             target, new_level, values["height"], values["data-capacity"]
-#         )
+def _update_tank_level(xml_state, tank, tank_data, new_level):
+    new_height = tank_data["height"] * (new_level / tank_data["data-capacity"])
+    new_y = tank_data["height"] - new_height
+    xml_state.update(
+        update(
+            xpath=f"//*[@id='tank-{tank}-fuel']",
+            attrs={"y": new_y, "height": new_height},
+        )
+    )
+    xml_state.update(
+        update(
+            xpath=f"//*[@id='tank-{tank}']",
+            attrs={"data-level": new_level},
+        )
+    )
 
 
-# def _get_tank_data(target, state):
-#     data = state.__select__(
-#         QueryXML(
-#             element_id=f"tank-{target}",
-#             attributes=["data-level", "data-capacity", "height"],
-#         )
-#     )
-#     return data.values
-
-
-# def _get_fuel_level_actions(target, new_level, height, capacity):
-#     new_height = height * (new_level / capacity)
-#     new_y = height - new_height
-#     return [
-#         QueryXML(
-#             element_id=f"tank-{target}-fuel",
-#             attributes={"y": new_y, "height": new_height},
-#         ),
-#         QueryXML(
-#             element_id=f"tank-{target}",
-#             attributes={"data-level": new_level},
-#         ),
-#     ]
+def _get_tank_data(xml_state, tank):
+    return xml_state.select(
+        select(
+            xpath=f"//*[@id='tank-{tank}']",
+            attrs=["data-level", "data-capacity", "height"],
+        )
+    )[0]

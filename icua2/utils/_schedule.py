@@ -1,5 +1,6 @@
 import sys
 import aiostream
+import asyncio
 import itertools
 from typing import List, Dict, Callable, Set, Type, Any
 from types import MethodType
@@ -18,6 +19,7 @@ class ScheduledAgent(Agent):
         self._schedules = [sch.stream() for sch in schedules]
         self._iter_context = None  # set on initialise
         self._iter_schedules = None  # set on initialise
+        self._completed = False
 
     async def __initialise__(self, state):
         self._iter_context = aiostream.stream.merge(*self._schedules).stream()
@@ -30,12 +32,16 @@ class ScheduledAgent(Agent):
             for obs in actuator.iter_observations():
                 if isinstance(obs, ErrorObservation):
                     raise obs.exception()
-
+        if self._completed:
+            await asyncio.sleep(1)  # TODO this is a temporary
+            return  # TODO the agent is done, the environment should not be calling __cycle__ for this agent?
         try:
             # this will await the next action from the collection of schedules
             await self._iter_schedules.__anext__()
         except StopAsyncIteration:
             await self._iter_context.__aexit__(None, None, None)
+            self._completed = True
+            LOGGER.info("%s has completed all its scheduled events.", self)
         except Exception as e:  # pylint: disable=W0718
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)

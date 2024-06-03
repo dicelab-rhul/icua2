@@ -176,7 +176,8 @@ class ToggleLightAction(Action):
                 xpath=f"//*[@id='light-{self.target}-button']",
                 attrs={
                     "data-state": Template("1-{data-state}"),
-                    "fill": Template("{data-colors}[1-{data-state}]"),
+                    # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
+                    "fill": Template("{data-colors}[{data-state}]"),
                 },
             )
         )

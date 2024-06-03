@@ -93,4 +93,4 @@ class MultiTaskEnvironment(Environment):
             await agent.__sense__(self._ambient)
             await agent.__cycle__()
             await agent.__execute__(self._ambient)
-            print(time.time() - t)
+            # print(time.time() - t)
