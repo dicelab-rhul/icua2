@@ -19,7 +19,7 @@ from matbii.tasks import (
     SystemMonitoringActuator,
     ResourceManagementActuator,
     AvatarTrackingActuator,
-    # AvatarSystemMonitoringActuator,
+    AvatarSystemMonitoringActuator,
     AvatarResourceManagementActuator,
 )
 
@@ -39,10 +39,12 @@ class ExitActuator(Actuator):
         return action
 
 
+# TODO actuators should be provided along with the task..?
 avatar = Avatar(
     actuators=[
         ExitActuator(),
         DefaultActuator(),
+        AvatarSystemMonitoringActuator(),
         AvatarTrackingActuator(),
         AvatarResourceManagementActuator(),
     ]
@@ -59,13 +61,12 @@ env.register_task(
     agent_actuators=[TrackingActuator],
 )
 env.enable_task(TASK_ID_TRACKING)
-
-# env.register_task(
-#     name=TASK_ID_SYSTEM_MONITORING,
-#     path=TASK_PATHS[TASK_ID_SYSTEM_MONITORING],
-#     agent_actuators=[SystemMonitoringActuator],
-# )
-# env.enable_task(TASK_ID_SYSTEM_MONITORING)
+env.register_task(
+    name=TASK_ID_SYSTEM_MONITORING,
+    path=TASK_PATHS[TASK_ID_SYSTEM_MONITORING],
+    agent_actuators=[SystemMonitoringActuator],
+)
+env.enable_task(TASK_ID_SYSTEM_MONITORING)
 env.register_task(
     name=TASK_ID_RESOURCE_MANAGEMENT,
     path=TASK_PATHS[TASK_ID_RESOURCE_MANAGEMENT],

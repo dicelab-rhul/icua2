@@ -31,13 +31,11 @@ class AvatarResourceManagementActuator(Actuator):
             user_action.status == MouseButtonEvent.DOWN
             and user_action.button == MouseButtonEvent.BUTTON_LEFT
         ):
-            print("?")
             actions.extend(self._get_pump_actions(user_action))
         return actions
 
     def _get_pump_actions(self, user_action):
         targets = self._get_pump_targets(user_action.target)
-        print(targets)
         return [TogglePumpAction(target=target) for target in targets]
 
     @staticmethod

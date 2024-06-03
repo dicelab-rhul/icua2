@@ -1,22 +1,65 @@
 import random
-from typing import Any, List, ClassVar
+import re
+from typing import Any, ClassVar
+from functools import partial
+from pydantic import Field, validator
+
+from star_ray.event import MouseButtonEvent
 from icua2.agent import Action, agent_actuator, attempt, Actuator
 from star_ray_xml import (
     XMLState,
-    update,
-    Expr,
     Template,
-    select,
     update,
-    delete,
-    insert,
-    replace,
+    select,
 )
-from pydantic import Field, validator
 
 # these are constants that reflect the task svg
 VALID_LIGHT_IDS = [1, 2]
 VALID_SLIDER_IDS = [1, 2, 3, 4]
+
+
+class AvatarSystemMonitoringActuator(Actuator):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._get_light_targets = partial(
+            AvatarSystemMonitoringActuator.get_click_targets, r"light-(\d+)-button"
+        )
+        self._get_slider_targets = partial(
+            AvatarSystemMonitoringActuator.get_click_targets, r"slider-(\d+)-button"
+        )
+
+    @attempt(route_events=[MouseButtonEvent])
+    def attempt_mouse_event(self, user_action: MouseButtonEvent):
+        assert isinstance(user_action, MouseButtonEvent)
+        # always include the user action as it needs to be logged
+        actions = [user_action]
+        if (
+            user_action.status == MouseButtonEvent.DOWN
+            and user_action.button == MouseButtonEvent.BUTTON_LEFT
+        ):
+            actions.extend(self._get_light_actions(user_action))
+            actions.extend(self._get_slider_actions(user_action))
+        return actions
+
+    def _get_light_actions(self, user_action):
+        targets = [int(x) for x in self._get_light_targets(user_action.target)]
+        return [ToggleLightAction(target=target) for target in targets]
+
+    def _get_slider_actions(self, user_action):
+        targets = [int(x) for x in self._get_slider_targets(user_action.target)]
+        return [ResetSliderAction(target=target) for target in targets]
+
+    @staticmethod
+    def get_click_targets(pattern, targets):
+        def _get():
+            for target in targets:
+                match = re.match(pattern, target)
+                if match:
+                    target = match.group(1)
+                    yield target
+
+        return list(_get())
 
 
 @agent_actuator

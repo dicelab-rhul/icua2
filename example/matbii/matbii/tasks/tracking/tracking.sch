@@ -1,2 +1,4 @@
-perturb_target(0) @ [0.1]:*
-#move_target(-90, 2) @ [0.01]:*
+####  Tracking Task Schedule ####
+
+# this moves the target around randomly
+perturb_target(5) @ [0.1]:*
