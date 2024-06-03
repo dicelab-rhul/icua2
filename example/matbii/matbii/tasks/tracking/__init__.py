@@ -1,3 +1,3 @@
-from .tracking import TrackingActuator, TargetMoveAction
+from .tracking import AvatarTrackingActuator, TrackingActuator, TargetMoveAction
 
-__all__ = ("TrackingActuator", "TargetMoveAction")
+__all__ = ("AvatarTrackingActuator", "TrackingActuator", "TargetMoveAction")

@@ -18,6 +18,7 @@ from matbii.tasks import (
     TrackingActuator,
     SystemMonitoringActuator,
     ResourceManagementActuator,
+    AvatarTrackingActuator,
 )
 
 
@@ -36,30 +37,29 @@ class ExitActuator(Actuator):
         return action
 
 
-avatar = Avatar(actuators=[ExitActuator(), DefaultActuator()])
+avatar = Avatar(actuators=[ExitActuator(), AvatarTrackingActuator(), DefaultActuator()])
 env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
 
 # load tasks
 # for task, task_path in TASK_PATHS.items():
 #     env.register_task(name=task, path=task_path, enable=True)
 
-# env.register_task(
-#     name=TASK_ID_TRACKING,
-#     path=TASK_PATHS[TASK_ID_TRACKING],
-#     agent_actuators=[TrackingActuator],
-# )
-# env.enable_task(TASK_ID_TRACKING)
+env.register_task(
+    name=TASK_ID_TRACKING,
+    path=TASK_PATHS[TASK_ID_TRACKING],
+    agent_actuators=[TrackingActuator],
+)
+env.enable_task(TASK_ID_TRACKING)
 # env.register_task(
 #     name=TASK_ID_SYSTEM_MONITORING,
 #     path=TASK_PATHS[TASK_ID_SYSTEM_MONITORING],
 #     agent_actuators=[SystemMonitoringActuator],
 # )
 # env.enable_task(TASK_ID_SYSTEM_MONITORING)
-
-env.register_task(
-    name=TASK_ID_RESOURCE_MANAGEMENT,
-    path=TASK_PATHS[TASK_ID_RESOURCE_MANAGEMENT],
-    agent_actuators=[ResourceManagementActuator],
-)
-env.enable_task(TASK_ID_RESOURCE_MANAGEMENT)
+# env.register_task(
+#     name=TASK_ID_RESOURCE_MANAGEMENT,
+#     path=TASK_PATHS[TASK_ID_RESOURCE_MANAGEMENT],
+#     agent_actuators=[ResourceManagementActuator],
+# )
+# env.enable_task(TASK_ID_RESOURCE_MANAGEMENT)
 env.run()

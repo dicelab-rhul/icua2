@@ -26,11 +26,16 @@ DEFAULT_ENABLED_TASKS = [
 ]
 
 DEFAULT_KEY_BINDING = {
-    "ArrowRight": "right",
-    "ArrowLeft": "left",
-    "ArrowUp": "up",
-    "ArrowDown": "down",
+    "arrowright": "right",
+    "arrowleft": "left",
+    "arrowup": "up",
+    "arrowdown": "down",
+    "right": "right",
+    "left": "left",
+    "up": "up",
+    "down": "down",
 }
+
 ALTERNATE_KEY_BINDING = {
     "d": "right",
     "a": "left",
