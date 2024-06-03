@@ -1,7 +1,8 @@
+import re
 from typing import ClassVar, List
 from pydantic import validator
-from cerberus import rules_set_registry
-from star_ray.event import Action
+from functools import partial
+from star_ray.event import Action, MouseButtonEvent
 from icua2.agent import attempt, Actuator
 from star_ray_xml import update, select, XMLState, Expr, Template
 
@@ -11,6 +12,44 @@ TANK_MAIN_IDS = list("ab")
 TANK_INF_IDS = list("ef")
 PUMP_IDS = ["ab", "ba", "ca", "ec", "ea", "db", "fd", "fb"]
 ALL = "*"
+
+
+class AvatarResourceManagementActuator(Actuator):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._get_pump_targets = partial(
+            AvatarResourceManagementActuator.get_click_targets, r"pump-([a-z]+)-button"
+        )
+
+    @attempt(route_events=[MouseButtonEvent])
+    def attempt_mouse_event(self, user_action: MouseButtonEvent):
+        assert isinstance(user_action, MouseButtonEvent)
+        # always include the user action as it needs to be logged
+        actions = []
+        if (
+            user_action.status == MouseButtonEvent.DOWN
+            and user_action.button == MouseButtonEvent.BUTTON_LEFT
+        ):
+            print("?")
+            actions.extend(self._get_pump_actions(user_action))
+        return actions
+
+    def _get_pump_actions(self, user_action):
+        targets = self._get_pump_targets(user_action.target)
+        print(targets)
+        return [TogglePumpAction(target=target) for target in targets]
+
+    @staticmethod
+    def get_click_targets(pattern, targets):
+        def _get():
+            for target in targets:
+                match = re.match(pattern, target)
+                if match:
+                    target = match.group(1)
+                    yield target
+
+        return list(_get())
 
 
 class ResourceManagementActuator(Actuator):
@@ -115,7 +154,7 @@ class TogglePumpAction(PumpAction):
         # check if pump is in a failure state
         pump_id = f"pump-{self.target}-button"
         # 0 -> 1, 1 -> 0, 2 -> 2 (cannot toggle if the pump is in failure)
-        new_state = "1-{data-state}%3"
+        new_state = "(1-{data-state})%3"
         xml_state.update(
             update(
                 xpath=f"//*[@id='{pump_id}']",

@@ -28,32 +28,6 @@
         <path d="M 20,10 L 10,0 L 0,10" stroke="{{stroke_color}}" stroke-width="{{asw}}" fill="none" />
     </symbol>
 
-    {% set ewidth = pump_width - 2 * stroke_width %}
-    {% set eheight = pump_height - 2 * stroke_width %}
-    {% set p = stroke_width %}
-
-    <symbol id="pump-east" viewBox="0 0 {{pump_width}} {{pump_height}}">
-        <rect id="background" x="0" y="0" width="{{pump_width}}" height="{{pump_height}}" fill="{{background_color}}" />
-        <rect id="pump_rect" x="{{p}}" y="{{p}}" width="{{ewidth}}" height="{{eheight}}" stroke="{{stroke_color}}"
-            stroke-width="{{stroke_width}}" fill="{{background_color}}" />
-        <use href="#arrow-east" x="{{pump_width / 2 - 5}}" y="{{pump_height / 2 - 10}}" width="10" height="20" />
-    </symbol>
-
-    <symbol id="pump-west" viewBox="0 0 {{pump_width}} {{pump_height}}">
-        <rect id="background" x="0" y="0" width="{{pump_width}}" height="{{pump_height}}" fill="{{background_color}}" />
-
-        <rect id="pump_rect" x="{{p}}" y="{{p}}" width="{{ewidth}}" height="{{eheight}}" stroke="{{stroke_color}}"
-            stroke-width="{{stroke_width}}" fill="{{background_color}}" />
-        <use href="#arrow-west" x="{{pump_width / 2 - 5}}" y="{{pump_height / 2 - 10}}" width="10" height="20" />
-    </symbol>
-
-    <symbol id="pump-north" viewBox="0 0 {{pump_width}} {{pump_height}}">
-        <rect id="pump_rect" x="{{p}}" y="{{p}}" width="{{ewidth}}" height="{{eheight}}" stroke="{{stroke_color}}"
-            stroke-width="{{stroke_width}}" fill="{{background_color}}" />
-        <use href="#arrow-north" x="{{pump_width / 2 - 10}}" y="{{pump_height / 2 - 5}}" width="20" height="10" />
-    </symbol>
-
-
     {% set padding = 10 %}
     {% set fuel_color = "#00ff00" %}
     {% set tank_height = 100 %}

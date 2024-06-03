@@ -1,7 +1,11 @@
 from cerberus import rules_set_registry
-from .resource_management import ResourceManagementActuator, SetPumpAction
+from .resource_management import (
+    ResourceManagementActuator,
+    AvatarResourceManagementActuator,
+    SetPumpAction,
+)
 
-__all__ = ("ResourceManagementActuator",)
+__all__ = ("ResourceManagementActuator", "AvatarResourceManagementActuator")
 
 rules_set_registry.add(
     "pump_state",

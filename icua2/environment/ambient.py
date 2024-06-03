@@ -63,7 +63,7 @@ class MultiTaskAmbient(XMLAmbient):
         if agent:
             self.add_agent(agent)
         # default is to insert as the first child of the root
-        self.__update__(insert(xpath="//svg:svg", element=task.get_xml(), index=0))
+        self.__update__(insert(xpath="/svg:svg", element=task.get_xml(), index=0))
         # update the bounding rectangle of the root svg... this is default behaviour TODO an option for this...
         bounds = list(
             self.__select__(

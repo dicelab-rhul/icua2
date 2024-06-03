@@ -33,8 +33,7 @@ class AvatarTrackingActuator(Actuator):
     def __attempt__(self):
         current_time = time.time()
         # this will contain the user action (KeyEvent)
-        actions = list(self.iter_actions())
-        print(actions, self._keys_pressed)
+        actions = []
         if len(self._keys_pressed) > 0:
             # compute speed based on time that has passed
             dt = current_time - self._prev_time
@@ -47,7 +46,6 @@ class AvatarTrackingActuator(Actuator):
                 result[0] += direction[0]
                 result[1] += direction[1]
             if result[0] != 0 or result[1] != 0:
-                print(direction, speed)
                 actions.append(TargetMoveAction(direction=tuple(result), speed=speed))
         self._prev_time = current_time
         return actions
@@ -59,7 +57,7 @@ class AvatarTrackingActuator(Actuator):
                 self._keys_pressed.remove(user_action.key)
             elif user_action.status in (KeyEvent.DOWN, KeyEvent.HOLD):
                 self._keys_pressed.add(user_action.key)
-        return [user_action]
+        return []  # these will be recorded by the DefaultActuator
 
     @attempt(route_events=[JoyStickEvent])
     def attempt_joystick_event(self, user_action: JoyStickEvent):

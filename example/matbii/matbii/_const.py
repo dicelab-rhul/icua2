@@ -42,3 +42,19 @@ ALTERNATE_KEY_BINDING = {
     "w": "up",
     "s": "down",
 }
+
+
+PYGAME_CONST = dict(
+    DEFAULT_KEY_BINDING={
+        "right": "right",
+        "left": "left",
+        "up": "up",
+        "down": "down",
+    },
+    ALTERNATE_KEY_BINDING={
+        "d": "right",
+        "a": "left",
+        "w": "up",
+        "s": "down",
+    },
+)
