@@ -122,7 +122,7 @@ class TargetMoveAction(Action):
         # get properties of the tracking task
         properties = state.select(
             select(
-                xpath="//svg:svg/svg:svg[@id='task_tracking']",
+                xpath="//svg:svg/svg:svg[@id='tracking']",
                 attrs=["width", "height"],
             )
         )[0]

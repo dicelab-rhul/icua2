@@ -1,12 +1,60 @@
-from typing import List, Dict, Callable
-from star_ray.event import ExitEvent
+import pathlib
+from typing import Any, List, Dict, Callable, Type
+from star_ray.event import (
+    ActiveObservation,
+    ErrorActiveObservation,
+    Event,
+    ExitEvent,
+    MouseButtonEvent,
+    MouseMotionEvent,
+    KeyEvent,
+    JoyStickEvent,
+    EyeMotionEvent,
+)
 from star_ray.agent import Agent, Actuator
-from star_ray_xml import XMLAmbient, insert, select, update
-
+from star_ray.pubsub._pubsub import Subscriber
+from star_ray_xml import (
+    XMLAmbient,
+    insert,
+    select,
+    update,
+    Update,
+    Insert,
+    Delete,
+    Replace,
+    Expr,
+)
+from star_ray.pubsub import EventPublisher, Subscribe, Unsubscribe
 from ..utils import DEFAULT_XML_NAMESPACES, DEFAULT_SVG_PLACEHOLDER
 from ..utils import TaskLoader, _Task, bounding_rectangle
-
 from ..utils._logging import EventLogger
+
+
+EVENT_TYPES_USERINPUT = (
+    MouseButtonEvent,
+    MouseMotionEvent,
+    KeyEvent,
+    JoyStickEvent,
+    EyeMotionEvent,
+)
+EVENT_TYPES_XML = (Update, Insert, Delete, Replace)
+
+SUBSCRIPTION_EVENTS = set(
+    EventPublisher.fully_qualified_name(t)
+    for t in (ExitEvent, *EVENT_TYPES_USERINPUT)
+    # TODO eye tracking event?
+)
+SUBSCRIPTION_XML_EVENTS = set(
+    EventPublisher.fully_qualified_name(t) for t in EVENT_TYPES_XML
+)
+
+
+class TaskEnabledEvent(Event):
+    task_name: str
+
+
+class TaskDisabledEvent(Event):
+    task_name: str
 
 
 class MultiTaskAmbient(XMLAmbient):
@@ -33,8 +81,50 @@ class MultiTaskAmbient(XMLAmbient):
         self._enable_dynamic_loading = enable_dynamic_loading
         self.suppress_warnings = suppress_warnings
         self._tasks: Dict[str, _Task] = dict()
+        # initialise various loggers
+        self._logger_event = None
+        self._logger_xml_event = None
+        self._initialise_logging(**kwargs)
+        # publisher with will notify on user events
+        self._event_publisher = EventPublisher()
+        self._padding = kwargs.get("padding", 10)
 
-        self._logger = EventLogger(kwargs.get("event_log_path", None))
+    def __subscribe__(
+        self, action: Subscribe | Unsubscribe
+    ) -> ActiveObservation | ErrorActiveObservation:
+
+        if action.topic in SUBSCRIPTION_EVENTS:
+            if isinstance(action, Subscribe):
+                self._event_publisher.subscribe(action.topic, action.subscriber)
+            elif isinstance(action, Unsubscribe):
+                self._event_publisher.unsubscribe(action.topic, action.subscriber)
+        elif action.topic in SUBSCRIPTION_XML_EVENTS:
+            return super().__subscribe__(action)
+        else:
+            raise ValueError(
+                f"Received invalid subscription, unknown topic: {action.topic}"
+            )
+
+    def _initialise_logging(self, **kwargs):
+        # initialise logging, we log to two files:
+        # 1. high level events + user input - these are higher level events triggered by the user or agents which will lead to some underlying state update (via their execute method)
+        # 2. xml events - these are "raw" updates to the underlying state
+        self._logger_event = EventLogger(
+            kwargs.get(
+                "log_path_event",
+                EventLogger.default_log_path(name="event_log_{datetime}.log"),
+            )
+        )
+        self._logger_xml_event = EventLogger(
+            kwargs.get(
+                "log_path_event_xml",
+                EventLogger.default_log_path(name="event_log_xml_{datetime}.log"),
+            )
+        )
+        self._state.subscribe(Update, subscriber=self._logger_xml_event)
+        self._state.subscribe(Insert, subscriber=self._logger_xml_event)
+        self._state.subscribe(Delete, subscriber=self._logger_xml_event)
+        self._state.subscribe(Replace, subscriber=self._logger_xml_event)
 
     def register_task(
         self,
@@ -63,36 +153,52 @@ class MultiTaskAmbient(XMLAmbient):
         if agent:
             self.add_agent(agent)
         # default is to insert as the first child of the root
-        self.__update__(insert(xpath="/svg:svg", element=task.get_xml(), index=0))
-        # update the bounding rectangle of the root svg... this is default behaviour TODO an option for this...
-        bounds = list(
-            self.__select__(
-                select(xpath="/svg:svg/svg:svg", attrs=["x", "y", "width", "height"])
-            ).values
-        )
-        bounds.append(dict(x=0, y=0, width=0, height=0))
+        self._state.insert(insert(xpath="/svg:svg", element=task.get_xml(), index=0))
 
-        # # TODO validate bounds
-        brect = bounding_rectangle(bounds)
-        self.__update__(
-            update(
-                xpath="/svg:svg",
-                attrs=dict(width=brect["width"], height=brect["height"]),
+        # update the bounding rectangle of the root svg... this is default behaviour TODO an option for this...
+        # also adds some padding around tasks...
+        bounds = list(
+            self._state.select(
+                select(xpath="/svg:svg/svg:svg", attrs=["x", "y", "width", "height"])
             )
         )
-        # TODO log enabled task
+        bounds.append(dict(x=0, y=0, width=0, height=0))
+        # # TODO validate bounds
+        brect = bounding_rectangle(bounds)
+        self._state.update(
+            update(
+                xpath="/svg:svg/svg:svg",
+                attrs=dict(
+                    x=Expr("{value}+{padding}", padding=self._padding),
+                    y=Expr("{value}+{padding}", padding=self._padding),
+                ),
+            )
+        )
+        self._state.update(
+            update(
+                xpath="/svg:svg",
+                attrs=dict(
+                    width=brect["width"] + self._padding * 2,
+                    height=brect["height"] + self._padding * 2,
+                ),
+            )
+        )
+        self._logger_event.log(TaskEnabledEvent(task_name=task_name))
 
     def disable_task(self, task_name: str):
         raise NotImplementedError()  # TODO
-        # TODO log enabled task
+        self._logger_event.log(TaskDisabledEvent(task_name=task_name))
 
     def __update__(self, action):
-        # log actions
-        if isinstance(action, ExitEvent):
+        result = None
+        if isinstance(action, EVENT_TYPES_USERINPUT):
+            self._event_publisher.notify_subscribers(action)
+        elif isinstance(action, ExitEvent):
             self.__kill__()
-        result = super().__update__(action)
+        else:
+            result = super().__update__(action)
         # TODO check for errors before logging...
-        self._logger.log(action)
+        self._logger_event.log(action)
         return result
 
     # def _update_internal(self, action):

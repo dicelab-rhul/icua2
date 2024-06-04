@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any
+from star_ray_xml import select
 
-from matbii.action import SetLightAction
+from ..tasks.system_monitoring import SetLightAction
 
 
 class TaskAcceptabilityTracker(ABC):
@@ -10,18 +11,22 @@ class TaskAcceptabilityTracker(ABC):
     def is_acceptable(self, beliefs: Dict[str, Any]):
         pass
 
+    @abstractmethod
+    def select(self):
+        pass
+
 
 class SystemMonitoringAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]):
-        return (
-            self.is_light_acceptable(1, beliefs)
-            and self.is_light_acceptable(2, beliefs)
-            and self.is_slider_acceptable(1, beliefs)
-            and self.is_slider_acceptable(2, beliefs)
-            and self.is_slider_acceptable(3, beliefs)
-            and self.is_slider_acceptable(4, beliefs)
-        )
+        return {
+            "light-1": self.is_light_acceptable(1, beliefs),
+            "light-2": self.is_light_acceptable(2, beliefs),
+            "slider-1": self.is_slider_acceptable(1, beliefs),
+            "slider-2": self.is_slider_acceptable(2, beliefs),
+            "slider-3": self.is_slider_acceptable(3, beliefs),
+            "slider-4": self.is_slider_acceptable(4, beliefs),
+        }
 
     def is_slider_acceptable(self, _id: int, beliefs: Dict[str, Any]):
         # sliders should be at the center position (according to SetSliderAction.acceptable_state which is incs // 2 + 1)
@@ -40,11 +45,23 @@ class SystemMonitoringAcceptabilityTracker(TaskAcceptabilityTracker):
         # light 2 should be off
         return beliefs[light_id(2)]["data-state"] == SetLightAction.OFF
 
+    def select(self):
+        lights = [f"//*[@id='{light_id(i)}']" for i in (1, 2)]
+        sliders = [f"//*[@id='{slider_id(i)}']" for i in (1, 2, 3, 4)]
+        slider_incs = [f"//*[@id='{slider_incs_id(i)}']" for i in (1, 2, 3, 4)]
+
+        lights = [select(xpath=xpath, attrs=["id", "data-state"]) for xpath in lights]
+        sliders = [select(xpath=xpath, attrs=["id", "data-state"]) for xpath in sliders]
+        slider_incs = [
+            select(xpath=xpath, attrs=["id", "incs"]) for xpath in slider_incs
+        ]
+        return [*lights, *sliders, *slider_incs]
+
 
 class TrackingAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]):
-        return self.is_tracking_acceptable(beliefs)
+        return {"target": self.is_tracking_acceptable(beliefs)}
 
     def is_tracking_acceptable(self, beliefs: Dict[str, Any]):
         target = beliefs[tracking_target_id()]
@@ -71,13 +88,26 @@ class TrackingAcceptabilityTracker(TaskAcceptabilityTracker):
         max_x, max_y = rect_max
         return min_x <= px <= max_x and min_y <= py <= max_y
 
+    def select(self):
+        return [
+            select(
+                xpath=f"//*[@id='{tracking_target_id()}']",
+                attrs=["id", "x", "y", "width", "height"],
+            ),
+            select(
+                xpath=f"//*[@id='{tracking_box_id()}']",
+                attrs=["id", "x", "y", "width", "height"],
+            ),
+        ]
+
 
 class ResourceManagementAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]):
-        return self.is_tank_acceptable("a", beliefs) and self.is_tank_acceptable(
-            "b", beliefs
-        )
+        return {
+            "tank-a": self.is_tank_acceptable("a", beliefs),
+            "tank-b": self.is_tank_acceptable("b", beliefs),
+        }
 
     def is_tank_acceptable(self, _id: str, beliefs: Dict[str, Any]):
         tank = beliefs[tank_id(_id)]
@@ -91,6 +121,22 @@ class ResourceManagementAcceptabilityTracker(TaskAcceptabilityTracker):
             fuel_level >= acceptable_level - acceptable_range2
             and fuel_level <= acceptable_level + acceptable_range2
         )
+
+    def select(self):
+        # interested in the fuel levels of the main tanks in the Resource Management Task
+        tanks = [tank_id(i) for i in ("a", "b")]
+        tank_levels = [tank_level_id(i) for i in ("a", "b")]
+        tank_selects = [
+            select(
+                xpath=f"//*[@id='{id}']", attrs=["id", "data-capacity", "data-level"]
+            )
+            for id in tanks
+        ]
+        tank_level_selects = [
+            select(xpath=f"//*[@id='{id}']", attrs=["id", "data-level", "data-range"])
+            for id in tank_levels
+        ]
+        return [*tank_selects, *tank_level_selects]
 
 
 def tank_id(tank: str):

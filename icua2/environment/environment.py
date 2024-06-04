@@ -18,6 +18,7 @@ class MultiTaskEnvironment(Environment):
         enable_dynamic_loading: bool = False,
         suppress_warnings: bool = False,
         wait=0.05,
+        log_xml_events: bool = True,
     ):
         ambient = MultiTaskAmbient(
             agents=agents,

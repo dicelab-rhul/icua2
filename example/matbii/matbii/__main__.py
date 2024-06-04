@@ -22,6 +22,7 @@ from matbii.tasks import (
     AvatarSystemMonitoringActuator,
     AvatarResourceManagementActuator,
 )
+from matbii.guidance import GuidanceAgentBase, GuidanceAgentDefault
 
 
 class DefaultActuator(Actuator):
@@ -43,13 +44,16 @@ class ExitActuator(Actuator):
 avatar = Avatar(
     actuators=[
         ExitActuator(),
-        DefaultActuator(),
+        DefaultActuator(),  # This actuator enables recording of all user input!
         AvatarSystemMonitoringActuator(),
         AvatarTrackingActuator(),
         AvatarResourceManagementActuator(),
     ]
 )
-env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
+guidance_agent = GuidanceAgentBase()
+guidance_agent = GuidanceAgentDefault()
+
+env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
 
 # load tasks
 # for task, task_path in TASK_PATHS.items():
