@@ -6,7 +6,7 @@ from star_ray.event.user_event import (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
-    ExitEvent,
+    WindowCloseEvent,
 )
 
 TASK_NAME = "task_follow"
@@ -22,13 +22,13 @@ class DefaultActuator(Actuator):
 
 class ExitActuator(Actuator):
 
-    @attempt(route_events=[ExitEvent])
-    def exit(self, action: ExitEvent):
-        assert isinstance(action, ExitEvent)
+    @attempt(route_events=[WindowCloseEvent])
+    def exit(self, action: WindowCloseEvent):
+        assert isinstance(action, WindowCloseEvent)
         return action
 
 
-avatar = Avatar(actuators=[ExitActuator(), DefaultActuator()])
+avatar = Avatar(sensors=[], actuators=[ExitActuator(), DefaultActuator()])
 env = MultiTaskEnvironment(agents=[avatar], enable_dynamic_loading=True)
 env.register_task(name=TASK_NAME, path=PATH, enable=True)
 env.run()

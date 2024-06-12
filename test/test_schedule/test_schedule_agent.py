@@ -56,7 +56,7 @@ class ScheduleAgent(Agent):
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def __kill__(self):
+    async def __terminate__(self):
         await self._iter_context.aclose()
 
 
@@ -67,7 +67,7 @@ async def main():
     await agent.__initialise__()
     for i in range(1):
         await agent.__cycle__()
-    # await agent.__kill__()
+    # await agent.__terminate__()
 
 
 # Run the event loop

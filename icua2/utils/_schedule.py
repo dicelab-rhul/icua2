@@ -24,6 +24,7 @@ class ScheduledAgent(Agent):
     async def __initialise__(self, state):
         self._iter_context = aiostream.stream.merge(*self._schedules).stream()
         self._iter_schedules = await self._iter_context.__aenter__()
+        LOGGER.debug("%s: %s initialised", ScheduledAgent.__name__, self.id)
 
     # TODO implement proper execution scheduling in the environment!! we cant have each agent awaiting here blocking each other
     async def __cycle__(self):
@@ -53,7 +54,7 @@ class ScheduledAgent(Agent):
     async def __execute__(self, state, *args, **kwargs):
         return super().__execute__(state, *args, **kwargs)
 
-    async def __kill__(self):
+    async def __terminate__(self):
         await self._iter_context.aclose()
 
 

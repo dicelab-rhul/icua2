@@ -1,9 +1,15 @@
 from typing import Dict, Any
+from pydantic import validator
 import lxml.etree as etree
 from star_ray.agent import Actuator, attempt
+from star_ray.agent.component.component import Component
 from star_ray.event import Action
+from star_ray.event.observation_event import ErrorObservation
 from star_ray_xml import XMLState, insert, update, select
 from icua2.utils import DEFAULT_XML_NAMESPACES
+
+
+from .action import *
 
 from .._const import (
     TASK_ID_RESOURCE_MANAGEMENT,
@@ -13,118 +19,65 @@ from .._const import (
 from .guidance_base import GuidanceAgentBase
 
 
-class DrawBoxAction(Action):
-
-    xpath: str
-    # TODO validate box_data, must contain x,y,width,height
-    box_data: Dict[str, str]
-
-    @staticmethod
-    def _new_box(state: XMLState, box_data: Dict[str, str], xpath: str):
-        box = etree.Element(
-            "{%s}rect" % DEFAULT_XML_NAMESPACES["svg"],
-            attrib=box_data,
-            nsmap=DEFAULT_XML_NAMESPACES,
-        )
-        box = etree.tostring(box)
-        print(xpath, box)
-        return state.insert(insert(xpath=xpath, element=box, index=0))
-
-    @staticmethod
-    def _draw_box(state: XMLState, box_data: Dict[str, str], xpath: str):
-        box_id = box_data.get("id", None)
-        if box_id is None:
-            raise ValueError("Attempted to draw a box without an `id` attribute.")
-        # check if the box already exists
-        assert not xpath.endswith("/")  # this would not be a valid xpath...
-        uxpath = xpath + f"/svg:rect[@id='{box_id}']"
-        result = state.select(select(xpath=uxpath, attrs=["id"]))
-        if result:
-            return state.update(update(xpath=uxpath, attrs=box_data))
-        else:
-            return DrawBoxAction._new_box(
-                state, box_data, xpath
-            )  # create a new box (it doesnt exist yet)
-
-    def execute(self, state: XMLState):
-        return DrawBoxAction._draw_box(state, self.box_data, self.xpath)
-
-
-class DrawBoxOnElementAction(DrawBoxAction):
-
-    def execute(self, state: XMLState):
-        required_attrs = ("x", "y", "width", "height")
-        result = state.select(select(xpath=self.xpath, attrs=required_attrs))
-        if not result:
-            raise ValueError(
-                f"Failed to find element at xpath: {self.xpath} for box draw."
-            )
-        if len(result) > 1:
-            raise ValueError(
-                f"Found multiple elements at xpath: {self.xpath} for box draw."
-            )
-        box_data = {**self.box_data}
-        result = dict(filter(lambda x: x[1] is not None, result[0].items()))
-        box_data.update({str(k): str(v) for k, v in result.items()})
-        if any(not key in box_data for key in required_attrs):
-            missing = [key for key in required_attrs if key not in box_data]
-            raise ValueError(f"Element is missing required attributes: {missing}")
-        assert not self.xpath.endswith("/")  # this would not be a valid xpath...
-        DrawBoxAction._draw_box(state, box_data, self.xpath + "/parent::*")
-
-
-class ShowElementAction(Action):
-    pass
-
-
-class HideElementAction(Action):
-    pass
-
-
 class BoxGuidanceActuator(Actuator):
 
-    def _set_default_box_attributes(self, kwargs):
-        kwargs.setdefault("stroke-width", "2")
-        kwargs.setdefault("stroke", "red")
-        kwargs.setdefault("fill", "none")
-        return {str(k): str(v) for k, v in kwargs.items()}
-
     @attempt
-    def guidance_box(self, name, x, y, width, height, **kwargs):
-        kwargs = self._set_default_box_attributes(kwargs)
-        return DrawBoxAction(
+    def guidance_arrow(
+        self,
+        name: str,
+        x: float,
+        y: float,
+        scale: float = 1.0,
+        rotation: float = 0,
+        fill: str = "none",
+        opacity: float = 1,
+        stroke: float = 2,
+        **kwargs,
+    ):
+        return DrawArrowAction(
             xpath="/svg:svg",
-            box_data=dict(
-                id=str(name),
-                x=str(x),
-                y=str(y),
-                width=str(width),
-                height=str(height),
+            data=dict(
+                id=name,
+                x=x,
+                y=y,
+                scale=scale,
+                rotation=rotation,
+                fill=fill,
+                opacity=opacity,
+                stroke=stroke,
                 **kwargs,
             ),
         )
 
     @attempt
-    def guidance_box_on_element(self, element_id: str, **kwargs):
-        kwargs = self._set_default_box_attributes(kwargs)
-        kwargs.setdefault("id", f"guidance_box_{element_id}")
+    def guidance_box(
+        self, name: str, x: float, y: float, width: float, height: float, **kwargs
+    ):
+        assert (name and x and y and width and height) is not None
+        return DrawBoxAction(
+            xpath="/svg:svg",
+            box_data=dict(
+                id=name,
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                **kwargs,
+            ),
+        )
+
+    @attempt
+    def guidance_box_on_element(self, name: str, element_id: str, **kwargs):
+        kwargs.setdefault("id", name)
         return DrawBoxOnElementAction(xpath=f"//*[@id='{element_id}']", box_data=kwargs)
 
     @attempt
-    def show_guidance_box(self, name):
-        pass
-        # return DrawBoxAction(
-        #     xpath="/svg:svg",
-        #     box_data={"id": name, "opacity": "1", "stroke-opacity": "1"},
-        # )
+    def show_guidance_box(self, name: str):
+        return ShowElementAction(xpath=f"//*[@id='{name}']")
 
     @attempt
     def hide_guidance_box(self, name):
-        pass
-        # return DrawBoxAction(
-        #     xpath="/svg:svg",
-        #     box_data={"id": name, "opacity": "0", "stroke-opacity": "0"},
-        # )
+        return HideElementAction(xpath=f"//*[@id='{name}']")
 
 
 class GuidanceAgentDefault(GuidanceAgentBase):
@@ -134,15 +87,51 @@ class GuidanceAgentDefault(GuidanceAgentBase):
         self._box_guidance_actuator: BoxGuidanceActuator = self.add_component(
             BoxGuidanceActuator()
         )
+        self._guidance_initialised = False
+        self._tasks = set(
+            [
+                TASK_ID_RESOURCE_MANAGEMENT,
+                TASK_ID_SYSTEM_MONITORING,
+                TASK_ID_TRACKING,
+            ]
+        )
+
+    def __initialise__(self, state: XMLState):
+        # set up initialise guidance, this just draws a box around each task, the agent will later decide whether this box is visible to the user
+        for task in self._tasks:
+            self._box_guidance_actuator.guidance_box_on_element(
+                f"guidance_box_{task}",
+                task,
+                opacity=0,
+            )
+        return super().__initialise__(state)
 
     def __cycle__(self):
         super().__cycle__()  # update beliefs
-        # decide whether to give guidance
-        # print(self.current_mouse_position)
+        # self.demo_toggle_box_guidance_by_mouse()
+        self.demo_show_arrow_by_mouse()
+
+    def demo_show_arrow_by_mouse(self):
+        if self.current_mouse_position:
+            self._box_guidance_actuator.guidance_arrow(
+                "guidance_arrow", *self.current_mouse_position["position"]
+            )
+
+    def demo_show_box_at_mouse(self):
         if self.current_mouse_position:
             self._box_guidance_actuator.guidance_box(
-                "test", *self.current_mouse_position["position"], 50, 50
+                "guidance_box_test", *self.current_mouse_position["position"], 10, 10
             )
-            self._box_guidance_actuator.guidance_box_on_element(
-                TASK_ID_RESOURCE_MANAGEMENT
-            )
+
+    def demo_toggle_box_guidance_by_mouse(self):
+        if self.current_mouse_position:
+            for task in self._tasks:
+                # highlight the task if the mouse is over it, otherwise hide it
+                if task in self.mouse_at_elements:
+                    self._box_guidance_actuator.show_guidance_box(
+                        f"guidance_box_{task}"
+                    )
+                else:
+                    self._box_guidance_actuator.hide_guidance_box(
+                        f"guidance_box_{task}"
+                    )

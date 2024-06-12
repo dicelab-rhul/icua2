@@ -1,12 +1,6 @@
 from icua2 import MultiTaskEnvironment
-from star_ray_pygame.avatar import Avatar
-from star_ray.agent import Actuator, attempt
-from star_ray.event.user_event import (
-    MouseButtonEvent,
-    MouseMotionEvent,
-    KeyEvent,
-    ExitEvent,
-)
+from star_ray_pygame import WindowConfiguration
+from matbii.agent import Avatar
 
 from matbii import (
     TASK_PATHS,
@@ -24,36 +18,21 @@ from matbii.tasks import (
 )
 from matbii.guidance import GuidanceAgentBase, GuidanceAgentDefault
 
-
-class DefaultActuator(Actuator):
-
-    @attempt(route_events=(MouseButtonEvent, MouseMotionEvent, KeyEvent))
-    def default(self, action):
-        return action
-
-
-class ExitActuator(Actuator):
-
-    @attempt(route_events=[ExitEvent])
-    def exit(self, action: ExitEvent):
-        assert isinstance(action, ExitEvent)
-        return action
-
-
 # TODO actuators should be provided along with the task..?
 avatar = Avatar(
+    sensors=[],  # relevant sensors are added by default
     actuators=[
-        ExitActuator(),
-        DefaultActuator(),  # This actuator enables recording of all user input!
         AvatarSystemMonitoringActuator(),
         AvatarTrackingActuator(),
         AvatarResourceManagementActuator(),
-    ]
+    ],
+    eyetracker=None,
+    window_config=WindowConfiguration(width=640, height=640, title="matbii"),
 )
-guidance_agent = GuidanceAgentBase()
-guidance_agent = GuidanceAgentDefault()
-
-env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
+# guidance_agent = GuidanceAgentBase()
+# guidance_agent = GuidanceAgentDefault()
+# env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
+env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
 
 # load tasks
 # for task, task_path in TASK_PATHS.items():

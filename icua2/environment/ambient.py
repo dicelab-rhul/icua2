@@ -1,18 +1,15 @@
-import pathlib
 from typing import Any, List, Dict, Callable, Type
 from star_ray.event import (
     ActiveObservation,
     ErrorActiveObservation,
     Event,
-    ExitEvent,
+    WindowCloseEvent,
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
     JoyStickEvent,
-    EyeMotionEvent,
 )
 from star_ray.agent import Agent, Actuator
-from star_ray.pubsub._pubsub import Subscriber
 from star_ray_xml import (
     XMLAmbient,
     insert,
@@ -35,13 +32,13 @@ EVENT_TYPES_USERINPUT = (
     MouseMotionEvent,
     KeyEvent,
     JoyStickEvent,
-    EyeMotionEvent,
+    # TODO EyeMotionEvent - if enabled!
 )
 EVENT_TYPES_XML = (Update, Insert, Delete, Replace)
 
 SUBSCRIPTION_EVENTS = set(
     EventPublisher.fully_qualified_name(t)
-    for t in (ExitEvent, *EVENT_TYPES_USERINPUT)
+    for t in (WindowCloseEvent, *EVENT_TYPES_USERINPUT)
     # TODO eye tracking event?
 )
 SUBSCRIPTION_XML_EVENTS = set(
@@ -85,9 +82,10 @@ class MultiTaskAmbient(XMLAmbient):
         self._logger_event = None
         self._logger_xml_event = None
         self._initialise_logging(**kwargs)
-        # publisher with will notify on user events
+        # publisher will notify agents of user events
         self._event_publisher = EventPublisher()
         self._padding = kwargs.get("padding", 10)
+        # self._kill_callback = None
 
     def __subscribe__(
         self, action: Subscribe | Unsubscribe
@@ -193,36 +191,20 @@ class MultiTaskAmbient(XMLAmbient):
         result = None
         if isinstance(action, EVENT_TYPES_USERINPUT):
             self._event_publisher.notify_subscribers(action)
-        elif isinstance(action, ExitEvent):
-            self.__kill__()
+        elif isinstance(action, WindowCloseEvent):
+            # TODO this will wait for all agents to finish, which might take awhile, we should cancel coroutines,
+            # the agent loops are handled in the environment... so what is the best way to do this?
+            self.__terminate__()
         else:
             result = super().__update__(action)
         # TODO check for errors before logging...
         self._logger_event.log(action)
         return result
 
-    # def _update_internal(self, action):
-    #     if isinstance(action, QueryXPath):
-    #         return super().__update__(action)
-    #     elif hasattr(action, "to_xml_queries"):  # TODO check a type its faster/clearer
-    #         xml_actions = action.to_xml_queries(self.state)
-    #         if isinstance(xml_actions, list | tuple):
-    #             # some weirdness with list comprehension means super(MatbiiAmbient, self) is required...
-    #             return [
-    #                 super(MultiTaskAmbient, self).__update__(a) for a in xml_actions
-    #             ]
-    #         else:
-    #             raise ICUAInternalError(
-    #                 f"Ambient failed to convert action: `{action}` to XML queries, invalid return type: `{type(xml_actions)}`.",
-    #             )
-    #     # elif isinstance(action, VALID_USER_ACTIONS):
-    #     #     # TODO log these actions somewhere...
-    #     #     pass
-    #     else:
-    #         raise ICUAInternalError(
-    #             f"Ambient received unknown action type: `{type(action)}`."
-    #         )
+    # def __terminate__(self):
+    #     super().__terminate__()
+    #     self._kill_callback()  # kill all agent coroutines
 
-    def __kill__(self):
-        super().__kill__()
-        # TODO flush the history to disk? - this should be implemented in the decorator
+    # def set_kill_callback(self, callback):
+    #     # this is set by the environment, its a temporary workaround until we implement a proper scheduling mechanism
+    #     self._kill_callback = callback

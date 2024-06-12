@@ -3,16 +3,17 @@ from lxml import etree
 from ast import literal_eval
 from collections import defaultdict, deque
 
-from star_ray.agent import Agent, Sensor, attempt
+from star_ray.agent import Agent, Component, Sensor, attempt
 from star_ray.event import (
     Observation,
     ErrorObservation,
     MouseButtonEvent,
     KeyEvent,
     MouseMotionEvent,
-    EyeMotionEvent,
 )
 from star_ray.pubsub import Subscribe
+from star_ray_xml import select
+from icua2.extras.eyetracking import EyeMotionEvent
 
 EVENT_TYPES_USERINPUT = (MouseButtonEvent, MouseMotionEvent, KeyEvent, EyeMotionEvent)
 
@@ -40,6 +41,12 @@ class ActiveGuidanceSensor(Sensor):
         # TODO this could be done using subscriptions if implement in XMLState (e.g. subscribe to changes for a particular element with an id)
         return tracker.select()
 
+    @attempt
+    def sense_element(self, element_id: str, *attrs):
+        attrs = set(attrs)
+        attrs.add("id")
+        return select(xpath=f"//*[@id='{element_id}']", attrs=attrs)
+
     def __subscribe__(self):
         # subscribe to receive all user input events
         return [Subscribe(topic=event_type) for event_type in EVENT_TYPES_USERINPUT]
@@ -55,7 +62,7 @@ class GuidanceAgentBase(Agent):
         key_history_size=20,
     ):
         super().__init__([ActiveGuidanceSensor()], [])
-        self.beliefs = {}
+        self.beliefs = defaultdict(lambda: None)
         self._guidance_sensor: ActiveGuidanceSensor = next(iter(self.sensors))
         self._trackers = {
             TASK_ID_RESOURCE_MANAGEMENT: ResourceManagementAcceptabilityTracker(),
@@ -69,6 +76,20 @@ class GuidanceAgentBase(Agent):
             MouseMotionEvent: deque(maxlen=mouse_button_history_size),
             KeyEvent: deque(maxlen=key_history_size),
         }
+
+    @property
+    def looking_at_elements(self) -> List[str]:
+        try:
+            return self._user_input[EyeMotionEvent][0].target
+        except IndexError:
+            return []
+
+    @property
+    def mouse_at_elements(self) -> List[str]:
+        try:
+            return self._user_input[MouseMotionEvent][0].target
+        except IndexError:
+            return []
 
     @property
     def current_mouse_position(self) -> Dict[str, Any]:
@@ -91,25 +112,37 @@ class GuidanceAgentBase(Agent):
             self._guidance_sensor.sense_acceptability(tracker)
         return super().__sense__(state, *args, **kwargs)
 
+    def handle_error_observation(
+        self, component: Component, observation: ErrorObservation
+    ):
+        raise observation.exception()
+
     def __cycle__(self):
+        # update beliefs from guidance sensor, if any other sensors are added in a subclass these should be handled explicitly in the subclass.
         for observation in self._guidance_sensor.iter_observations():
             if isinstance(observation, ErrorObservation):
-                # TODO handle the error properly?
-                raise observation.exception()
+                self.handle_error_observation(self._guidance_sensor, observation)
             elif isinstance(observation, EVENT_TYPES_USERINPUT):
                 self._user_input[type(observation)].appendleft(observation)
             elif isinstance(observation, Observation):
                 data = observation.values[0]
-                self.beliefs[data.pop("id")] = data
+                try:
+                    self.beliefs[data.pop("id")] = data
+                except KeyError:
+                    # pylint: disable=W0707:
+                    raise ValueError(
+                        f"Received observation: {observation} that doesn't contain an `id`."
+                    )
             else:
                 raise ValueError(
                     f"Received observation: {observation} of unknown type: {type(observation)}"
                 )
 
+        # check for errors in actuators
         for actuator in self.actuators:
             for observation in actuator.iter_observations():
                 if isinstance(observation, ErrorObservation):
-                    raise observation.exception()
+                    self.handle_error_observation(actuator, observation)
         # update acceptability
         for task_id, tracker in self._trackers.items():
             self._acceptable[task_id].update(tracker.is_acceptable(self.beliefs))
