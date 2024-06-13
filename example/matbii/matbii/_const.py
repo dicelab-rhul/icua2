@@ -10,8 +10,6 @@ from importlib.resources import files
 # DEFAULT_SCHEDULE_FILE = DEFAULT_SCHEDULE_PATH / "default_schedule.sch"
 
 _TASK_PATH = files(__package__) / "tasks"
-print(_TASK_PATH)
-
 TASK_ID_TRACKING = "tracking"
 TASK_ID_SYSTEM_MONITORING = "system_monitoring"
 TASK_ID_RESOURCE_MANAGEMENT = "resource_management"

@@ -86,22 +86,40 @@ class TaskLoader:
     def register_task(
         self,
         name: str,
-        path: str,
+        path: str | List[str],
         agent_actuators: List[Callable[[], Actuator]] = None,
         avatar_actuators: List[Callable[[], Actuator]] = None,
         enable_dynamic_loading: bool = False,
         suppress_warnings: bool = False,
-    ):
-        path = Path(path).expanduser().resolve().absolute()
-        LOGGER.debug("Registering task: `%s` at path: `%s`/", name, path)
+    ) -> _Task:
+        """Registers the given task. Loads relevant configuration files.
+
+        Args:
+            name (str): name of the task.
+            path (str | List[str]): path (or paths) for the task configuration. If multiple paths are specified then files at the earlier paths will be prefered. This allows customisation and overriding of certain configuration files.
+            agent_actuators (List[Callable[[], Actuator]], optional): classes to be used for agent actuators. Defaults to None.
+            avatar_actuators (List[Callable[[], Actuator]], optional): classes to be used for avatar actuators. Defaults to None.
+            enable_dynamic_loading (bool, optional): whether to dynamically load actuators from any `.py` files found in the task path(s). Defaults to False.
+            suppress_warnings (bool, optional): whether to supress warnings. Defaults to False.
+
+        Returns:
+            Task: the configured task
+        """
+        if isinstance(path, str):
+            path = [path]
+        path = [Path(p).expanduser().resolve().absolute() for p in path]
+        LOGGER.debug(
+            "Registering task: `%s` at path(s): `%s`", name, [str(p) for p in path]
+        )
         self._template_loader.add_namespace(name, path)
         # FILES
-        # mytask.svg(.jinja)
-        # mytask.schema.json AND/OR mytask.json
-        # mytask.sch
-        # *.py (for dynamic loading)
+        # <TASK>.svg(.jinja)
+        # <TASK>.schema.json AND/OR <TASK>.json
+        # <TASK>.sch
         files = self._get_task_files(name, suppress_warnings=suppress_warnings)
         state = self.load_state(name, files, suppress_warnings=suppress_warnings)
+
+        # *.py (for dynamic loading)
         agent_actuators, avatar_actuators = self.load_actuators(
             name,
             path,

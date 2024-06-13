@@ -13,8 +13,6 @@ setup(
     install_requires=[
         "star_ray[xml,pygame]",
         "pyfuncschedule",
-        "cerberus",
-        "deepmerge",
         "aiostream",
     ],
     python_requires=">=3.10",
