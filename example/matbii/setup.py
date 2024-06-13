@@ -12,6 +12,9 @@ setup(
     url="https://github.com/dicelab-rhul/icua2/tree/main/example/matbii",
     packages=find_packages(),
     install_requires=["icua2"],
+    extras_require={
+        "tobii": ["icua2[tobii]"],
+    },
     python_requires=">=3.10",
     classifiers=[
         "Development Status :: 3 - Alpha",

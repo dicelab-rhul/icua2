@@ -15,6 +15,9 @@ setup(
         "pyfuncschedule",
         "aiostream",
     ],
+    extras_require={
+        "tobii": ["tobii_research"],
+    },
     python_requires=">=3.10",
     classifiers=[
         "Development Status :: 3 - Alpha",
