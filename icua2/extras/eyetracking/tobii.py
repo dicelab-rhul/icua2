@@ -1,6 +1,4 @@
-"""
-    This module bridges the Tobii (pro) eyetracking API with the ICU event system.
-"""
+""" Bridge between the Tobii (pro) eyetracking API and the `icua2` eyetracking API. """
 
 from typing import List, Dict, Any, Callable
 import time
@@ -10,6 +8,14 @@ from .event import EyeMotionEvent
 from .utils import EyetrackingConfigurationError
 from .eyetrackerbase import EyetrackerBase
 from ...utils import LOGGER
+
+try:
+    import tobii_research as _tr
+
+    TOBII_RESEACH_SDK_AVALIABLE = True
+except ModuleNotFoundError:
+    pass
+
 
 # constants used by tobii api for raw gaze events
 DEVICE_TIME_STAMP = "device_time_stamp"
@@ -41,15 +47,6 @@ RIGHT_GAZE_ORIGIN_IN_TRACKBOX_COORDINATE_SYSTEM = (
 )
 RIGHT_GAZE_ORIGIN_VALIDITY = "right_gaze_origin_validity"
 TOBII_RESEACH_SDK_AVALIABLE = False
-
-
-try:
-    import tobii_research as _tr
-
-    TOBII_RESEACH_SDK_AVALIABLE = True
-except ModuleNotFoundError:
-    pass
-# class EyeMotionEvent(EyeMotionEvent):
 
 
 class TobiiEyetracker(EyetrackerBase):

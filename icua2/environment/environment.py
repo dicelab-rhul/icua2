@@ -89,12 +89,10 @@ class MultiTaskEnvironment(Environment):
     async def run_agent(self, agent) -> bool:
         # TODO check that the agent is alive...
         while self._ambient.is_alive:  # check that the agent is alive...?
-            # t = time.time()
             await asyncio.sleep(self._wait)
             await agent.__sense__(self._ambient)
             await agent.__cycle__()
             await agent.__execute__(self._ambient)
-            # print(time.time() - t)
 
     # async def __initialise__(self, event_loop):
     #     await self._ambient.__initialise__()

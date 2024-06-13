@@ -2,5 +2,5 @@ class ICUAInternalError(Exception):
     pass
 
 
-class TaskConfigError(Exception):
+class TaskConfigurationError(Exception):
     pass

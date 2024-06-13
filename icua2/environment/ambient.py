@@ -23,7 +23,9 @@ from star_ray_xml import (
 )
 from star_ray.pubsub import EventPublisher, Subscribe, Unsubscribe
 from ..utils import DEFAULT_XML_NAMESPACES, DEFAULT_SVG_PLACEHOLDER
-from ..utils import TaskLoader, _Task, bounding_rectangle
+from ..utils import TaskLoader
+from ..utils._geom import bounding_rectangle
+from ..utils._task_loader import _Task
 from ..utils._logging import EventLogger
 
 

@@ -3,11 +3,10 @@ from star_ray_xml import update, Expr
 
 
 @agent_actuator
-class FollowActuator(Actuator):
+class MoveActuator(Actuator):
 
     @attempt
     def move(self, direction):
-        # print(direction)
         x = Expr("{value} + {direction}", direction=direction[0])
         y = Expr("{value} + {direction}", direction=direction[1])
         return update(

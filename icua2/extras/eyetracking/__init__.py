@@ -1,18 +1,22 @@
 from .eyetrackerbase import EyetrackerBase
 from .eyetracker import Eyetracker, EyetrackerWithUI
-
-from . import tobii
-
 from .event import EyeMotionEvent
 from .filter import IVTFilter, NWMAFilter, WindowSpaceFilter
 
+# requires extra "tobii"
+from . import tobii
+
 __all__ = (
-    "EyetrackerBase",
+    # eyetrackers
     "Eyetracker",
     "EyetrackerWithUI",
-    "tobii",
+    # events
     "EyeMotionEvent",
+    # filters
     "IVTFilter",
     "NWMAFilter",
     "WindowSpaceFilter",
+    # eyetracker base
+    "EyetrackerBase",
+    "tobii",  # tobii base eyetracker
 )

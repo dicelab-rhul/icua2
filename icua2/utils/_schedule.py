@@ -8,7 +8,7 @@ from star_ray.agent import Agent, Actuator
 from star_ray.event import ErrorObservation
 from pyfuncschedule import parser as schedule_parser, Schedule, ScheduleParser
 from ._logging import LOGGER
-from ._error import TaskConfigError
+from ._error import TaskConfigurationError
 
 
 class ScheduledAgent(Agent):
@@ -92,14 +92,14 @@ class ScheduledAgentFactory:
         try:
             self._parse_result = parser.parse(self._source)
         except Exception as e:
-            raise TaskConfigError("Failed to parse schedule.") from e
+            raise TaskConfigurationError("Failed to parse schedule.") from e
 
         try:
             # this will not resolve fully because we are using the unbound attempt methods
             # this is just to validate the attempt methods/functions being used after parsing
             _ = parser.resolve(self._parse_result)
         except Exception as e:
-            raise TaskConfigError("Failed to validate schedule.") from e
+            raise TaskConfigurationError("Failed to validate schedule.") from e
 
     def __call__(self) -> ScheduledAgent:
         actuators = [cls() for cls in self._actuator_types]

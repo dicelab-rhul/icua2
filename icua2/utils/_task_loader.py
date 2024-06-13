@@ -10,7 +10,7 @@ from lxml import etree
 from star_ray.utils import ValidatedEnvironment, TemplateLoader
 from star_ray.agent import Actuator
 from ._logging import LOGGER
-from ._error import TaskConfigError
+from ._error import TaskConfigurationError
 from ._schedule import ScheduledAgentFactory
 
 __all__ = ("avatar_actuator", "agent_actuator", "TaskLoader")
@@ -28,7 +28,7 @@ CLSATTR_IS_AGENT_ACTUATOR = "__is_agent_actuator__"
 
 def avatar_actuator(cls: Type[Actuator]):
     if not issubclass(cls, Actuator):
-        raise TaskConfigError(
+        raise TaskConfigurationError(
             f"Invalid use of @avatar, {cls} must derive `{Actuator.__name__}`"
         )
     setattr(cls, CLSATTR_IS_AVATAR_ACTUATOR, True)
@@ -37,7 +37,7 @@ def avatar_actuator(cls: Type[Actuator]):
 
 def agent_actuator(cls: Type[Actuator]):
     if not issubclass(cls, Actuator):
-        raise TaskConfigError(
+        raise TaskConfigurationError(
             f"Invalid use of @agent, {cls} must derive `{Actuator.__name__}`"
         )
     setattr(cls, CLSATTR_IS_AGENT_ACTUATOR, True)
@@ -146,7 +146,7 @@ class TaskLoader:
                 path, task_name, suppress_warnings=suppress_warnings
             )
             if not actuator_classes["agent"] and not actuator_classes["avatar"]:
-                raise TaskConfigError(
+                raise TaskConfigurationError(
                     f"No actuator classes were found in task plugin, did you forget to tag with @{agent_actuator.__name__} or @{avatar_actuator.__name__}?"
                 )
             agent_actuators.extend(actuator_classes["agent"])
@@ -207,11 +207,11 @@ class TaskLoader:
         suppress_warnings: bool = False,
     ):
         if not EXT_SCHEDULE in files and runtime_actions:
-            raise TaskConfigError(
+            raise TaskConfigurationError(
                 f"Configuration file: `{task_name}{EXT_SCHEDULE}` is missing for task: `{task_name}`"
             )
         elif EXT_SCHEDULE in files and not runtime_actions:
-            raise TaskConfigError(
+            raise TaskConfigurationError(
                 f"Found schedule configuration file: `{files[EXT_SCHEDULE].name}` but no actions were found."
             )
         schedule_path = files.get(EXT_SCHEDULE, None)
@@ -237,7 +237,7 @@ class TaskLoader:
                 has_schema = EXT_SCHEMA in files
                 has_context = EXT_CONTEXT in files
                 if not has_context and not has_schema:
-                    raise TaskConfigError(
+                    raise TaskConfigurationError(
                         f"Configuration file: `{task_name}{EXT_CONTEXT}` is missing from task template: `{state_path.name}`."
                     )
                 elif not has_schema and not suppress_warnings:
@@ -255,7 +255,7 @@ class TaskLoader:
                     context_path = files[EXT_CONTEXT]
                     LOGGER.debug("with context: `%s`", context_path.name)
         else:
-            raise TaskConfigError(
+            raise TaskConfigurationError(
                 f"State file: `{task_name}{EXT_SVG}(.jinja)` is missing for task: `{task_name}`."
             )
         return state_path, context_path, schema_path
@@ -299,7 +299,7 @@ def load_task_package_from_path(
         if path.suffix == ".py"
     ]
     if not files:
-        raise TaskConfigError(
+        raise TaskConfigurationError(
             f"Failed to load task: `{task_name}`, no `.py` files were found in the task path: `{path}`"
         )
     if "__init__.py" in [path.name for path in files]:

@@ -1,5 +1,4 @@
 from importlib.resources import files
-from datetime import datetime
 
 # TODO remove some of these.. we dont need them!
 # directories
@@ -21,12 +20,6 @@ DEFAULT_KEY_BINDING = {
     "ArrowUp": "up",
     "ArrowDown": "down",
 }
-# ALTERNATE_KEY_BINDING = {
-#     "d": "right",
-#     "a": "left",
-#     "w": "up",
-#     "s": "down",
-# }
 
 __all__ = (
     "DEFAULT_STATIC_PATH",
