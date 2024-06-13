@@ -62,6 +62,11 @@ class Avatar(PygameAvatar):
 
     def __initialise__(self, state):
         if self._eyetracker:
+            # presumably these have been found set up by now...
+            self._eyetracker.screen_size = self.get_screen_info()["size"]
+            window_info = self.get_window_info()
+            self._eyetracker.window_size = window_info["size"]
+            self._eyetracker.window_position = window_info["position"]
             self._eyetracker.start()
         return super().__initialise__(state)
 
@@ -87,9 +92,8 @@ class Avatar(PygameAvatar):
         # create filters
         maf = NWMAFilter(n=moving_average_n)
         ivf = IVTFilter(velocity_threshold=velocity_threshold)
-        # this filter will be set up when the eyetracker is created!
+        # this filter will be set up fully (screen/window position/size) when the eyetracker is started!
         wsf = WindowSpaceFilter(nan, nan, nan)
-
         # TODO try some other eyetrackers providers? when they are implemented in icua2
         from icua2.extras.eyetracking.tobii import (
             TobiiEyetracker,

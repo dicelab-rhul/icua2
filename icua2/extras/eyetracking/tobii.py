@@ -14,7 +14,8 @@ try:
 
     TOBII_RESEACH_SDK_AVALIABLE = True
 except ModuleNotFoundError:
-    pass
+    LOGGER.warning("Failed to locate module: `tobii_research`")
+    TOBII_RESEACH_SDK_AVALIABLE = False
 
 
 # constants used by tobii api for raw gaze events
@@ -46,7 +47,6 @@ RIGHT_GAZE_ORIGIN_IN_TRACKBOX_COORDINATE_SYSTEM = (
     "right_gaze_origin_in_trackbox_coordinate_system"
 )
 RIGHT_GAZE_ORIGIN_VALIDITY = "right_gaze_origin_validity"
-TOBII_RESEACH_SDK_AVALIABLE = False
 
 
 class TobiiEyetracker(EyetrackerBase):
@@ -78,7 +78,7 @@ class TobiiEyetracker(EyetrackerBase):
         self._uri = uri
         self._eyetracker = None
         self._t0 = None
-        self._event_loop = asyncio.get_event_loop()
+        self._event_loop = None
 
         if uri is None:
             # pylint: disable = E1101
@@ -99,6 +99,8 @@ class TobiiEyetracker(EyetrackerBase):
 
     def start(self):
         try:
+            # NOTE: it is important that this is called in async context
+            self._event_loop = asyncio.get_event_loop()
             # so we can track the actual times (this will introduce a small error...)
             # pylint: disable = E1101
             self._t0 = (_tr.get_system_time_stamp(), time.time())

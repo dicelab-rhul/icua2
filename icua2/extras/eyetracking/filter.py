@@ -46,6 +46,7 @@ class WindowSpaceFilter:
 
     def __call__(self, data: Dict[str, Any]) -> Dict[str, Any]:
         x, y = data["position"]
+        print(data["position"])
         if math.isnan(x) or math.isnan(y):
             data["in_window"] = False
             data["position_screen"] = data["position"]
@@ -59,9 +60,16 @@ class WindowSpaceFilter:
         in_window = (
             x > 0 and x < self.window_size[0] and y > 0 and y < self.window_size[1]
         )
+        print((x, y), self.screen_size, self.window_size)
         data["in_window"] = in_window
         data["position"] = (x, y)
         data["position_screen"] = position_screen
+        if "velocity" in data:
+            vx, vy = data["velocity"]
+            data["velocity"] = (vx * self.screen_size[0], vy * self.screen_size[1])
+            data["velocity_screen"] = (vx, vy)
+
+        print(data["position"], self.window_position, self.window_size)
         return data
 
 

@@ -4,6 +4,10 @@ from star_ray.event import (
     ErrorActiveObservation,
     Event,
     WindowCloseEvent,
+    WindowOpenEvent,
+    WindowFocusEvent,
+    WindowMoveEvent,
+    WindowResizeEvent,
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
@@ -26,22 +30,27 @@ from ..utils import DEFAULT_XML_NAMESPACES, DEFAULT_SVG_PLACEHOLDER
 from ..utils import TaskLoader
 from ..utils._geom import bounding_rectangle
 from ..utils._task_loader import _Task
-from ..utils._logging import EventLogger
+from ..utils._logging import EventLogger, LOGGER
 
+# enabled?
+from ..extras.eyetracking import EyeMotionEvent
 
 EVENT_TYPES_USERINPUT = (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
     JoyStickEvent,
-    # TODO EyeMotionEvent - if enabled!
+    WindowCloseEvent,
+    WindowOpenEvent,
+    WindowFocusEvent,
+    WindowMoveEvent,
+    WindowResizeEvent,
+    EyeMotionEvent,
 )
 EVENT_TYPES_XML = (Update, Insert, Delete, Replace)
 
 SUBSCRIPTION_EVENTS = set(
-    EventPublisher.fully_qualified_name(t)
-    for t in (WindowCloseEvent, *EVENT_TYPES_USERINPUT)
-    # TODO eye tracking event?
+    EventPublisher.fully_qualified_name(t) for t in EVENT_TYPES_USERINPUT
 )
 SUBSCRIPTION_XML_EVENTS = set(
     EventPublisher.fully_qualified_name(t) for t in EVENT_TYPES_XML
@@ -193,20 +202,13 @@ class MultiTaskAmbient(XMLAmbient):
         result = None
         if isinstance(action, EVENT_TYPES_USERINPUT):
             self._event_publisher.notify_subscribers(action)
-        elif isinstance(action, WindowCloseEvent):
-            # TODO this will wait for all agents to finish, which might take awhile, we should cancel coroutines,
-            # the agent loops are handled in the environment... so what is the best way to do this?
-            self.__terminate__()
         else:
             result = super().__update__(action)
         # TODO check for errors before logging...
         self._logger_event.log(action)
+        if isinstance(action, WindowCloseEvent):
+            # TODO this will wait for all agents to finish, which might take awhile, we should cancel coroutines,
+            # the agent loops are handled in the environment... so what is the best way to do this?
+            LOGGER.debug("Window closed: %s, shutting down...", action)
+            self.__terminate__()
         return result
-
-    # def __terminate__(self):
-    #     super().__terminate__()
-    #     self._kill_callback()  # kill all agent coroutines
-
-    # def set_kill_callback(self, callback):
-    #     # this is set by the environment, its a temporary workaround until we implement a proper scheduling mechanism
-    #     self._kill_callback = callback

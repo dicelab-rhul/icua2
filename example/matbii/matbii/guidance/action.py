@@ -103,9 +103,7 @@ class DrawArrowAction(DrawElementAction):
             for k in ["rotation", "fill", "stroke", "stroke-color"]
             if k in data
         }
-
-        pol_xpath = xpath = "/svg:polygon"
-
+        pol_xpath = xpath + "/svg:polygon"
         state.update(update(xpath=xpath, attrs=svg_data))
         state.update(update(xpath=pol_xpath, attrs=pol_data))
 

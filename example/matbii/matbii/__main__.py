@@ -1,4 +1,5 @@
 from icua2 import MultiTaskEnvironment
+
 from matbii.agent import Avatar
 
 from matbii import (
@@ -25,12 +26,12 @@ avatar = Avatar(
         AvatarTrackingActuator(),
         AvatarResourceManagementActuator(),
     ],
-    eyetracker=None,
+    eyetracker=Avatar.get_default_eyetracker(),
 )
-# guidance_agent = GuidanceAgentBase()
-# guidance_agent = GuidanceAgentDefault()
-# env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
-env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
+
+guidance_agent = GuidanceAgentDefault()
+env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
+# env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
 
 env.register_task(
     name=TASK_ID_TRACKING,

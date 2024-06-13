@@ -29,4 +29,5 @@ class DefaultActuator(Actuator):
         )
     )
     def default(self, action):
+
         return action

@@ -52,10 +52,7 @@ class EyetrackerWithUI(Eyetracker):
             filter(lambda f: isinstance(f, WindowSpaceFilter), filters)
         )
         if len(window_space_filter) == 0:
-            # add a window space filter...
-            nan = (float("nan"), float("nan"))
-            window_space_filter = [WindowSpaceFilter(nan, nan, nan)]
-            self._eyetracker_base._filters.append(window_space_filter[0])
+            raise ValueError(f"Missing required filter: {WindowSpaceFilter}")
         self._window_space_filter = window_space_filter[0]
         super().__init__(eyetracker, event_factory)
 
