@@ -1,11 +1,13 @@
 import math
 import random
+import time
 from typing import Tuple
 from pydantic import validator
-import time
 
-from star_ray.event import Action, KeyEvent, JoyStickEvent
 from star_ray_xml import XMLState, Template, Expr, update, select
+from star_ray_pygame.event import (
+    KeyEvent,
+)
 from icua2.utils import LOGGER
 from icua2.agent import Action, Actuator, attempt
 
@@ -59,11 +61,11 @@ class AvatarTrackingActuator(Actuator):
                 self._keys_pressed.add(user_action.key)
         return []  # these will be recorded by the DefaultActuator
 
-    @attempt(route_events=[JoyStickEvent])
-    def attempt_joystick_event(self, user_action: JoyStickEvent):
-        # TODO If a joystick device is used (and supported elsewhere), this is where we would handle the action.
-        # the handling should look similar to key events above but might require some work (if the input is continuous for example)
-        raise NotImplementedError()
+    # @attempt(route_events=[JoyStickEvent])
+    # def attempt_joystick_event(self, user_action: JoyStickEvent):
+    #     # TODO If a joystick device is used (and supported elsewhere), this is where we would handle the action.
+    #     # the handling should look similar to key events above but might require some work (if the input is continuous for example)
+    #     raise NotImplementedError()
 
 
 class TrackingActuator(Actuator):

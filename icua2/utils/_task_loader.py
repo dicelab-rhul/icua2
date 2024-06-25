@@ -205,6 +205,7 @@ class TaskLoader:
             runtime_actions=len(agent_actuators) > 0,
         )
         if schedule_path:
+            # TODO it would be nice if this could give the full path, its may be useful to see exactly which file is being loaded
             LOGGER.debug("loading schedule: `%s`", schedule_path.name)
             # TODO perhaps we shouldnt load as a template... just load as text?
             # the templating syntax might interfere with things?

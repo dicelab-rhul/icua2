@@ -2,9 +2,13 @@ import re
 from typing import ClassVar, List
 from pydantic import validator
 from functools import partial
-from star_ray.event import Action, MouseButtonEvent
+from star_ray.event import Action
 from icua2.agent import attempt, Actuator
 from star_ray_xml import update, select, XMLState, Expr, Template
+
+from star_ray_pygame.event import (
+    MouseButtonEvent,
+)
 
 
 TANK_IDS = list("abcdef")

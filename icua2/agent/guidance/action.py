@@ -116,8 +116,8 @@ class DrawArrowAction(DrawElementAction):
         data.setdefault("stroke-color", "#ff0000")
         data.setdefault("x", "0")
         data.setdefault("y", "0")
-        id = data.get("id", None)
-        assert id is not None  # must have an 'id'
+        _id = data.get("id", None)
+        assert _id is not None  # must have an 'id'
         # does the element already exist?
         uxpath = xpath + f"/svg:svg[@id='{data['id']}']"
         result = state.select(select(xpath=uxpath, attrs=["id"]))

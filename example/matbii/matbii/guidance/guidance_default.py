@@ -1,22 +1,14 @@
 from typing import Dict, Any
-from pydantic import validator
-import lxml.etree as etree
 from star_ray.agent import Actuator, attempt
-from star_ray.agent.component.component import Component
-from star_ray.event import Action
-from star_ray.event.observation_event import ErrorObservation
-from star_ray_xml import XMLState, insert, update, select
-from icua2.utils import DEFAULT_XML_NAMESPACES
-
-
-from .action import *
+from star_ray_xml import XMLState
+from icua2.agent.guidance.action import *
+from .guidance_base import GuidanceAgentBase
 
 from .._const import (
     TASK_ID_RESOURCE_MANAGEMENT,
     TASK_ID_SYSTEM_MONITORING,
     TASK_ID_TRACKING,
 )
-from .guidance_base import GuidanceAgentBase
 
 
 class BoxGuidanceActuator(Actuator):
@@ -82,8 +74,10 @@ class BoxGuidanceActuator(Actuator):
 
 class GuidanceAgentDefault(GuidanceAgentBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self,
+    ):
+        super().__init__([], [])
         self._box_guidance_actuator: BoxGuidanceActuator = self.add_component(
             BoxGuidanceActuator()
         )

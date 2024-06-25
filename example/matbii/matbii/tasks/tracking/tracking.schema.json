@@ -33,7 +33,7 @@
     },
     "x": {
         "type": "integer",
-        "default": 400
+        "default": 320
     },
     "y": {
         "type": "integer",

@@ -1,0 +1,26 @@
+| Configuration Option                | Type      | Description                                                     |
+|-------------------------------------|-----------|-----------------------------------------------------------------|
+| **experiment_info**                 | `dict`    | experiment configuration (see below)                            |
+| - path                              | `string ` | path to directory containing task files.                        |
+| - id                                | `string ` | ID of this experiment (typically associated with the experiment path). |
+| - duration                          | `integer` | duration of the experiment (seconds), will auto-close upon reaching this time. |
+| - meta                              | `dict`    | any meta data associated with the experiment.                   |
+| **participant_info**                | `dict`    | participant information (see below)                             |
+| - id                                | `string ` | ID of the participant                                           |
+| - meta                              | `dict`    | any meta data associated with the participant (e.g. age)        |
+| **enable_tasks**                    | `list`    | tasks to enable, one of more of: `"tracking", "system_monitoring", "resource_management"` |
+| **window_x**                        | `integer` | x position of the UI window on the screen.                      |
+| **window_y**                        | `integer` | y position of the UI window on the screen.                      |
+| **window_width**                    | `integer` | width of the UI window.                                         |
+| **window_height**                   | `integer` | height of the UI window.                                        |
+| **window_title**                    | `string ` | title of the UI window.                                         |
+| **window_background_color**         | `color  ` | background color of the UI.                                     |
+| **window_fullscreen**               | `boolean` | fullscreen the UI?                                              |
+| **window_resizable**                | `boolean` | allow resizing of the UI?                                       |
+| **enable_video_recording**          | `boolean` | record the screen during the experiment?                        |
+| **eyetracking_enabled**             | `boolean` | enable eyetracking? (requires a physical eyetracker & relevant dependencies)  |
+| **eyetracking_calibration_check**   | `boolean` | run an eyetracking calibration check before running the experiment? |
+| **eyetracking_throttle**            | `integer` | throttle high sampling rate eyetrackers to the given value (events/second) |
+| **eyetracking_moving_average_n**    | `integer` | window size for eyetracking moving average smoothing            |
+| **eyetracking_velocity_threshold**  | `float  ` | velocity threshold for fixation/saccade classification (NOTE: currently specified in normalized screen coordinates, this will be updated in latest version to use the gaze angle.) |
+| **logging_level**                   | `string ` | logging level, one of: `"info", "debug"`                        |

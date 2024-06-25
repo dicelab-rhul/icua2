@@ -1,24 +1,13 @@
-from abc import ABC, abstractmethod
 from typing import Dict, Any
 from star_ray_xml import select
+from icua2.agent.guidance import TaskAcceptabilityTracker
 
 from ..tasks.system_monitoring import SetLightAction
 
 
-class TaskAcceptabilityTracker(ABC):
-
-    @abstractmethod
-    def is_acceptable(self, beliefs: Dict[str, Any]):
-        pass
-
-    @abstractmethod
-    def select(self):
-        pass
-
-
 class SystemMonitoringAcceptabilityTracker(TaskAcceptabilityTracker):
 
-    def is_acceptable(self, beliefs: Dict[str, Any]):
+    def is_acceptable(self, beliefs: Dict[str, Any]) -> Dict[str, bool]:
         return {
             "light-1": self.is_light_acceptable(1, beliefs),
             "light-2": self.is_light_acceptable(2, beliefs),

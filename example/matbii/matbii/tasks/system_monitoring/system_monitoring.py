@@ -4,7 +4,10 @@ from typing import Any, ClassVar
 from functools import partial
 from pydantic import Field, validator
 
-from star_ray.event import MouseButtonEvent
+from star_ray_pygame.event import (
+    MouseButtonEvent,
+)
+
 from icua2.agent import Action, agent_actuator, attempt, Actuator
 from star_ray_xml import (
     XMLState,

@@ -1,15 +1,15 @@
 from star_ray.agent import Actuator, attempt
-from star_ray.event import (
+from star_ray_pygame.event import (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
-)
-from star_ray.event.user_event import (
+    WindowCloseEvent,
     WindowFocusEvent,
     WindowMoveEvent,
+    WindowOpenEvent,
     WindowResizeEvent,
-    WindowCloseEvent,
 )
+
 from icua2.extras.eyetracking.event import EyeMotionEvent
 
 
@@ -26,8 +26,8 @@ class DefaultActuator(Actuator):
             WindowMoveEvent,
             WindowResizeEvent,
             WindowCloseEvent,
+            WindowOpenEvent,
         )
     )
     def default(self, action):
-
         return action

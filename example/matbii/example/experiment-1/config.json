@@ -1,0 +1,26 @@
+{
+    "enable_tasks": [
+        "tracking",
+        "resource_management"
+    ],
+    "experiment_info": {
+        "id": "experiment-1",
+        "path": "./",
+        "duration": 30,
+        "meta": {
+            "description": "<description of experiment>"
+        }
+    },
+    "participant_info": {
+        "id": "p01",
+        "meta": {
+            "age": 28
+        }
+    },
+    "window_fullscreen": false,
+    "window_resizable": false,
+    "enable_video_recording": false,
+    "eyetracking_enabled": false,
+    "eyetracking_calibration_check": false,
+    "eyetracking_throttle": 100
+}
