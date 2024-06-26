@@ -70,18 +70,22 @@ class SystemMonitoringActuator(Actuator):
 
     @attempt
     def on_light(self, target: int):
+        """Turn on the given light."""
         return SetLightAction(target=target, state=SetLightAction.ON)
 
     @attempt
     def off_light(self, target: int):
+        """Turn off the given light."""
         return SetLightAction(target=target, state=SetLightAction.OFF)
 
     @attempt
     def toggle_light(self, target: int):
+        """Toggle the given light (on->off, off->on)."""
         return ToggleLightAction(target=target)
 
     @attempt
     def perturb_slider(self, target: int):
+        """Perturb the given slider by +/- 1 slot."""
         state = 2 * random.randint(0, 1) - 1  # randomly perturb +/- 1
         return SetSliderAction(target=target, state=state, relative=True)
 

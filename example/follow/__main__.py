@@ -2,7 +2,7 @@ import pathlib
 from icua2 import MultiTaskEnvironment
 from star_ray_pygame.avatar import Avatar
 from star_ray.agent import Actuator, attempt
-from star_ray.event.user_event import (
+from star_ray_pygame.event import (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,

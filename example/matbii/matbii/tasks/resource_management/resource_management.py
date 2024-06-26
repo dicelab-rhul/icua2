@@ -58,18 +58,22 @@ class ResourceManagementActuator(Actuator):
 
     @attempt
     def burn_fuel(self, target: int | str, burn: float):
+        """Burns a given amount of fuel in the target tank."""
         return BurnFuelAction(target=target, burn=burn)
 
     @attempt
     def pump_fuel(self, target: int | str, flow: float):
+        """Pumps a given amount of fuel to/from the given tanks."""
         return PumpFuelAction(target=target, flow=flow)
 
     @attempt
     def toggle_pump_failure(self, target: int | str):
+        """Toggle a pump failure (on/off -> failure, failure -> off)"""
         return TogglePumpFailureAction(target=target)
 
     @attempt
     def toggle_pump(self, target: int | str):
+        """Toggle pump state (on->off, off->on)"""
         return TogglePumpAction(target=target)
 
 

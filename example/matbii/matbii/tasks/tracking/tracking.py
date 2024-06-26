@@ -72,6 +72,7 @@ class TrackingActuator(Actuator):
 
     @attempt
     def move_target(self, direction: Tuple[float, float] | int | float, speed: float):
+        """Move the target in a given direction at a given speed."""
         # an angle was provided (in degrees), convert it to a direction vector
         if isinstance(direction, (int, float)):
             angle = math.radians(direction)
@@ -80,7 +81,7 @@ class TrackingActuator(Actuator):
 
     @attempt
     def perturb_target(self, speed: float):
-        # print("perturb")
+        """Perturb the target in a random direction at a given speed."""
         angle = (random.random() * 2 - 1) * math.pi
         direction = (math.sin(angle), math.cos(angle))
         return TargetMoveAction(direction=direction, speed=speed)

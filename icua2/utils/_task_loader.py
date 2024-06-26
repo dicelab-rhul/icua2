@@ -2,6 +2,7 @@ from typing import Dict, Set, List, Tuple, Any, Type, Callable
 import importlib.util
 import inspect
 import sys
+import copy
 from jinja2 import Template
 from functools import wraps
 from pathlib import Path
@@ -105,7 +106,7 @@ class TaskLoader:
         Returns:
             Task: the configured task
         """
-        if isinstance(path, str):
+        if isinstance(path, (str, Path)):
             path = [path]
         path = [Path(p).expanduser().resolve().absolute() for p in path]
         LOGGER.debug(
@@ -119,15 +120,27 @@ class TaskLoader:
         files = self._get_task_files(name, suppress_warnings=suppress_warnings)
         state = self.load_state(name, files, suppress_warnings=suppress_warnings)
 
-        # *.py (for dynamic loading)
-        agent_actuators, avatar_actuators = self.load_actuators(
-            name,
-            path,
-            agent_actuators,
-            avatar_actuators,
-            enable_dynamic_loading=enable_dynamic_loading,
-            suppress_warnings=suppress_warnings,
+        agent_actuators = (
+            copy.deepcopy(agent_actuators) if not agent_actuators is None else []
         )
+        avatar_actuators = (
+            copy.deepcopy(avatar_actuators) if not avatar_actuators is None else []
+        )
+
+        # *.py (for dynamic loading)
+        # TODO this should work the same as with config files - i.e. overriding the .py files.
+        # Currently just loads .py files from all paths, overriding is not yet supported!
+        for p in path:
+            # both sets of actuators are updated in the method call
+            self.load_actuators(
+                name,
+                p,
+                agent_actuators,
+                avatar_actuators,
+                enable_dynamic_loading=enable_dynamic_loading,
+                suppress_warnings=suppress_warnings,
+            )
+
         agent_factory = self.load_schedule(
             name,
             files,
@@ -211,6 +224,7 @@ class TaskLoader:
             # the templating syntax might interfere with things?
             schedule_source = self._jinja_env.get_template(str(schedule_path)).render()
             with LOGGER.indent:
+                # print(agent_actuators)
                 agent_factory = ScheduledAgentFactory(
                     schedule_source, agent_actuators, self.get_default_funcs()
                 )
@@ -308,8 +322,9 @@ def dont_write_bytecode(fun):
 
 @dont_write_bytecode
 def load_task_package_from_path(
-    path: str, task_name: str, suppress_warnings: bool = False
+    path: str | Path, task_name: str, suppress_warnings: bool = False
 ):
+
     path = Path(path).expanduser().resolve()
     module_name = f"_{task_name}"
     files = [
