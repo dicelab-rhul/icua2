@@ -1,11 +1,10 @@
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Any, Tuple
 import asyncio
 
 from icua2.utils._schedule import ScheduledAgent
 from star_ray import Environment, Agent, Actuator
 from .ambient import MultiTaskAmbient
 from ..utils import LOGGER
-from .agent_scheduler import AgentScheduler
 
 
 class MultiTaskEnvironment(Environment):
@@ -13,18 +12,22 @@ class MultiTaskEnvironment(Environment):
     def __init__(
         self,
         agents: List[Agent] = None,
-        xml: str = None,
-        xml_namespaces: Dict[str, str] = None,
+        svg: str = None,
+        namespaces: Dict[str, str] = None,
         enable_dynamic_loading: bool = False,
         suppress_warnings: bool = False,
-        wait=0.05,
+        wait: float = 0.05,
+        svg_size: Tuple[float, float] = None,
+        svg_position: Tuple[float, float] = None,
     ):
         ambient = MultiTaskAmbient(
             agents=agents,
-            xml=xml,
-            xml_namespaces=xml_namespaces,
+            svg=svg,
+            namespaces=namespaces,
             enable_dynamic_loading=enable_dynamic_loading,
             suppress_warnings=suppress_warnings,
+            svg_size=svg_size,
+            svg_position=svg_position,
         )
         super().__init__(
             ambient=ambient,
@@ -33,12 +36,19 @@ class MultiTaskEnvironment(Environment):
         )
         self._agent_scheduler = None
 
-    def enable_task(self, task_name: str):
+    def enable_task(
+        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = 0
+    ):
         # TODO what if this is remote!
-        self._ambient._inner.enable_task(task_name)
+        self._ambient._inner.enable_task(
+            task_name, context=context, insert_at=insert_at
+        )
 
     def disable_task(self, task_name: str):
         self._ambient._inner.disable_task(task_name)
+
+    def rename_task(self, task_name: str, new_name: str):
+        self._ambient._inner.rename_task(task_name, new_name)
 
     def register_task(
         self,
@@ -66,7 +76,6 @@ class MultiTaskEnvironment(Environment):
 
     async def __initialise__(self, event_loop):
         await self._ambient.__initialise__()
-        await self.initialise_agents()
         LOGGER.debug("Environment initialised successfully.")
 
     def get_schedule(self):
@@ -93,6 +102,7 @@ class MultiTaskEnvironment(Environment):
             await agent.__sense__(self._ambient)
             await agent.__cycle__()
             await agent.__execute__(self._ambient)
+        print("??")
 
     # async def __initialise__(self, event_loop):
     #     await self._ambient.__initialise__()

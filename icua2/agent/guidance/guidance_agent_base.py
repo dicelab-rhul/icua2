@@ -71,6 +71,7 @@ class GuidanceAgentBase(Agent):
         }
 
     def get_latest_user_events(self, event_type: Type, n: int = 1) -> Iterator[Event]:
+        # print(event_type, len(self._user_input_events[event_type]))
         try:
             return islice(self._user_input_events[event_type], 0, n)
         except IndexError:
@@ -81,16 +82,14 @@ class GuidanceAgentBase(Agent):
         #     self._guidance_sensor.sense_acceptability(tracker)
         return super().__sense__(state, *args, **kwargs)
 
-    def handle_error_observation(
-        self, component: Component, observation: ErrorObservation
-    ):
+    def on_error_observation(self, component: Component, observation: ErrorObservation):
         raise observation.exception()
 
     def __cycle__(self):
         # update beliefs from guidance sensor, if any other sensors are added in a subclass these should be handled explicitly in the subclass.
         for observation in self._guidance_sensor.iter_observations():
             if isinstance(observation, ErrorObservation):
-                self.handle_error_observation(self._guidance_sensor, observation)
+                self.on_error_observation(self._guidance_sensor, observation)
             elif type(observation) in self._user_input_events:
                 self._user_input_events[type(observation)].appendleft(observation)
             elif isinstance(observation, Observation):
@@ -111,7 +110,7 @@ class GuidanceAgentBase(Agent):
         for actuator in self.actuators:
             for observation in actuator.iter_observations():
                 if isinstance(observation, ErrorObservation):
-                    self.handle_error_observation(actuator, observation)
+                    self.on_error_observation(actuator, observation)
 
         # update acceptability
         for task_id, tracker in self._acceptability_trackers.items():

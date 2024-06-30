@@ -8,8 +8,7 @@ from star_ray_pygame.event import (
     KeyEvent,
     WindowCloseEvent,
 )
-from star_ray_xml import update, Expr
-
+from star_ray_xml import update
 
 TASK_NAME = "task_follow"
 PATH = pathlib.Path(__file__).parent / "task"

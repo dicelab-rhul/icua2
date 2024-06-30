@@ -101,13 +101,12 @@ class GuidanceAgentDefault(GuidanceAgentBase):
         return super().__initialise__(state)
 
     def __cycle__(self):
-        super().__cycle__()  # update beliefs
+        super().__cycle__()
         self.demo_toggle_box_guidance_by_mouse()
-        self.demo_show_arrow_by_gaze()
+        self.demo_show_arrow_by_mouse()
 
     def demo_show_arrow_by_gaze(self):
         if self.current_eye_position:
-            # print(self.current_eye_position)
             self._box_guidance_actuator.guidance_arrow(
                 "guidance_arrow", *self.current_eye_position["position"]
             )

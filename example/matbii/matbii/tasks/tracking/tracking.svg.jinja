@@ -2,7 +2,8 @@
     <!-- Target symbol -->
     {% set target_size = (target_radius + target_line_width + 1) * 2 %}
 
-    <svg id="tracking_target" x="{{width/2}}" y="{{height/2}}" width="{{target_size}}" height="{{target_size}}"
+    <svg id="tracking_target" x="{{width/2 - target_size/2 + target_x_offset}}"
+        y="{{height/2 - target_size/2 + target_y_offset}}" width="{{target_size}}" height="{{target_size}}"
         fill="transparent">
         {% set c = target_size / 2 %}
         <circle cx="{{c}}" cy="{{c}}" r="{{target_radius}}" stroke="{{target_color}}"

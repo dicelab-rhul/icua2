@@ -1,45 +1,41 @@
-from typing import Any, List, Dict, Callable, Type
-from star_ray.event import (
-    ActiveObservation,
-    ErrorActiveObservation,
-    Event,
-    WindowCloseEvent,
-    WindowOpenEvent,
-    WindowFocusEvent,
-    WindowMoveEvent,
-    WindowResizeEvent,
-    MouseButtonEvent,
-    MouseMotionEvent,
-    KeyEvent,
-    JoyStickEvent,
-)
+from typing import Any, List, Dict, Callable, Tuple
 from star_ray.agent import Agent, Actuator
+from star_ray.pubsub import EventPublisher, Subscribe, Unsubscribe
+from star_ray.event import ActiveObservation, ErrorActiveObservation
 from star_ray_xml import (
     XMLAmbient,
     insert,
-    select,
     update,
     Update,
     Insert,
     Delete,
     Replace,
-    Expr,
 )
-from star_ray.pubsub import EventPublisher, Subscribe, Unsubscribe
+
+from ..event import (
+    TaskDisabledEvent,
+    TaskEnabledEvent,
+    EnableTask,
+    DisableTask,
+    EyeMotionEvent,
+    MouseButtonEvent,
+    MouseMotionEvent,
+    KeyEvent,
+    WindowCloseEvent,
+    WindowOpenEvent,
+    WindowFocusEvent,
+    WindowMoveEvent,
+    WindowResizeEvent,
+)
 from ..utils import DEFAULT_XML_NAMESPACES, DEFAULT_SVG_PLACEHOLDER
 from ..utils import TaskLoader
-from ..utils._geom import bounding_rectangle
 from ..utils._task_loader import _Task
 from ..utils._logging import EventLogger, LOGGER
-
-# enabled?
-from ..extras.eyetracking import EyeMotionEvent
 
 EVENT_TYPES_USERINPUT = (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
-    JoyStickEvent,
     WindowCloseEvent,
     WindowOpenEvent,
     WindowFocusEvent,
@@ -57,31 +53,25 @@ SUBSCRIPTION_XML_EVENTS = set(
 )
 
 
-class TaskEnabledEvent(Event):
-    task_name: str
-
-
-class TaskDisabledEvent(Event):
-    task_name: str
-
-
 class MultiTaskAmbient(XMLAmbient):
 
     def __init__(
         self,
         agents: List[Agent] = None,
-        xml: str = None,
-        xml_namespaces: Dict[str, str] = None,
+        svg: str = None,
+        namespaces: Dict[str, str] = None,
         enable_dynamic_loading: bool = False,
         suppress_warnings: bool = False,
+        svg_size: Tuple[float, float] = None,
+        svg_position: Tuple[float, float] = None,
         **kwargs,
     ):
         _namespaces = dict(**DEFAULT_XML_NAMESPACES)
-        if xml_namespaces:
-            _namespaces.update(xml_namespaces)
+        if namespaces:
+            _namespaces.update(namespaces)
         super().__init__(
             agents if agents else [],
-            xml=xml if xml else DEFAULT_SVG_PLACEHOLDER,
+            xml=svg if svg else DEFAULT_SVG_PLACEHOLDER,
             namespaces=_namespaces,
             **kwargs,
         )
@@ -98,10 +88,25 @@ class MultiTaskAmbient(XMLAmbient):
         self._padding = kwargs.get("padding", 10)
         # self._kill_callback = None
 
+        # set values for the root container
+        root_attributes = {}
+        if svg_size:
+            assert len(svg_size) == 2
+            root_attributes["width"] = svg_size[0]
+            root_attributes["height"] = svg_size[1]
+        if svg_position:
+            root_attributes["x"] = svg_position[0]
+            root_attributes["y"] = svg_position[1]
+        self.__update__(update(xpath="/svg:svg", attrs=root_attributes))
+
+        # otherwise we can get some confusing rendering errors... (blank canvas)
+        assert self._state.get_root().get("x", None) is not None
+        assert self._state.get_root().get("y", None) is not None
+
     def __subscribe__(
         self, action: Subscribe | Unsubscribe
     ) -> ActiveObservation | ErrorActiveObservation:
-
+        print(action)
         if action.topic in SUBSCRIPTION_EVENTS:
             if isinstance(action, Subscribe):
                 self._event_publisher.subscribe(action.topic, action.subscriber)
@@ -156,43 +161,72 @@ class MultiTaskAmbient(XMLAmbient):
         if enable:
             self.enable_task(name)
 
-    def enable_task(self, task_name: str):
+    def rename_task(self, task_name, name):
+        """Rename an existing task.
+
+        Args:
+            task_name (_type_): _description_
+            name (_type_): _description_
+
+        Raises:
+            ValueError: _description_
+            ValueError: _description_
+        """
+        if task_name in self._tasks:
+            if name in self._tasks:
+                raise ValueError(
+                    f"Failed to rename task: {task_name}, new name: {name} already exists."
+                )
+            self._tasks[name] = self._tasks[task_name]
+            del self._tasks[task_name]
+        else:
+            raise ValueError(f"Failed to rename task: {task_name} as it doesn't exist.")
+
+    def enable_task(
+        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = 0
+    ):
         task = self._tasks[task_name]
         agent = task.get_agent()
         if agent:
             self.add_agent(agent)
+            # check if the agent has already been initialised...
+
         # default is to insert as the first child of the root
-        self._state.insert(insert(xpath="/svg:svg", element=task.get_xml(), index=0))
+        self._state.insert(
+            insert(xpath="/svg:svg", element=task.get_xml(context), index=insert_at)
+        )
 
         # update the bounding rectangle of the root svg... this is default behaviour TODO an option for this...
         # also adds some padding around tasks...
-        bounds = list(
-            self._state.select(
-                select(xpath="/svg:svg/svg:svg", attrs=["x", "y", "width", "height"])
-            )
-        )
-        bounds.append(dict(x=0, y=0, width=0, height=0))
-        # # TODO validate bounds
-        brect = bounding_rectangle(bounds)
-        self._state.update(
-            update(
-                xpath="/svg:svg/svg:svg",
-                attrs=dict(
-                    x=Expr("{value}+{padding}", padding=self._padding),
-                    y=Expr("{value}+{padding}", padding=self._padding),
-                ),
-            )
-        )
-        self._state.update(
-            update(
-                xpath="/svg:svg",
-                attrs=dict(
-                    width=brect["width"] + self._padding * 2,
-                    height=brect["height"] + self._padding * 2,
-                ),
-            )
-        )
-        self._logger_event.log(TaskEnabledEvent(task_name=task_name))
+        # bounds = list(
+        #     self._state.select(
+        #         select(xpath="/svg:svg/svg:svg", attrs=["x", "y", "width", "height"])
+        #     )
+        # )
+        # bounds.append(dict(x=0, y=0, width=0, height=0))
+        # # # TODO validate bounds
+        # brect = bounding_rectangle(bounds)
+        # self._state.update(
+        #     update(
+        #         xpath="/svg:svg/svg:svg",
+        #         attrs=dict(
+        #             x=Expr("{value}+{padding}", padding=self._padding),
+        #             y=Expr("{value}+{padding}", padding=self._padding),
+        #         ),
+        #     )
+        # )
+        # self._state.update(
+        #     update(
+        #         xpath="/svg:svg",
+        #         attrs=dict(
+        #             width=brect["width"] + self._padding * 2,
+        #             height=brect["height"] + self._padding * 2,
+        #         ),
+        #     )
+        # )
+        event = TaskEnabledEvent(task_name=task_name)
+        self._event_publisher.notify_subscribers(event)
+        self._logger_event.log(event)
 
     def disable_task(self, task_name: str):
         raise NotImplementedError()  # TODO
@@ -202,13 +236,20 @@ class MultiTaskAmbient(XMLAmbient):
         result = None
         if isinstance(action, EVENT_TYPES_USERINPUT):
             self._event_publisher.notify_subscribers(action)
+        elif isinstance(action, EnableTask):
+            self.enable_task(
+                action.task_name, context=action.context, insert_at=action.insert_at
+            )
+        elif isinstance(action, DisableTask):
+            self.disable_task(action.task_name)
         else:
             result = super().__update__(action)
         # TODO check for errors before logging...
         self._logger_event.log(action)
+
         if isinstance(action, WindowCloseEvent):
             # TODO this will wait for all agents to finish, which might take awhile, we should cancel coroutines,
             # the agent loops are handled in the environment... so what is the best way to do this?
             LOGGER.debug("Window closed: %s, shutting down...", action)
-            self.__terminate__()
+            self._is_alive = False  # trigger termination
         return result

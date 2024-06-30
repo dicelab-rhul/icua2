@@ -5,7 +5,7 @@ from star_ray.agent import Actuator, attempt
 from star_ray_xml import Update
 from matbii.agent.avatar import Avatar, PygameAvatar
 from star_ray_xml import XMLAmbient
-from star_ray.environment.wrapper_state import _State
+from star_ray.environment.wrapper_state import State
 from icua2.extras.eyetracking import EyeMotionEvent
 
 
@@ -52,7 +52,7 @@ async def main(
         fill="{color}" />
     </svg:svg>""",
     )
-    state = _State.new(state)
+    state = State.new(state)
     avatar = state.get_agents()[0]
     await state.__initialise__()
     await avatar.__initialise__(state)

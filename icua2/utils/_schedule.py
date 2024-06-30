@@ -28,6 +28,7 @@ class ScheduledAgent(Agent):
 
     # TODO implement proper execution scheduling in the environment!! we cant have each agent awaiting here blocking each other
     async def __cycle__(self):
+        # TODO implement catch CancelledError! this should stop the iterator and set self._completed = True
         # check if there were any errors from actuators
         for actuator in self.actuators:
             for obs in actuator.iter_observations():
@@ -42,7 +43,11 @@ class ScheduledAgent(Agent):
         except StopAsyncIteration:
             await self._iter_context.__aexit__(None, None, None)
             self._completed = True
-            LOGGER.info("%s has completed all its scheduled events.", self)
+            LOGGER.debug("%s has completed all its scheduled events.", self)
+        except asyncio.CancelledError:
+            await self._iter_context.__aexit__(None, None, None)
+            self._completed = True
+            LOGGER.debug("%s was cancelled.", self)
         except Exception as e:  # pylint: disable=W0718
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)

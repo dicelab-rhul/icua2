@@ -1,14 +1,15 @@
 from typing import List, Tuple, Any, Dict, Type
 from star_ray.agent import Sensor, Actuator
-from star_ray.event import (
-    Event,
-    MouseButtonEvent,
-    KeyEvent,
-    MouseMotionEvent,
-)
-from icua2.extras.eyetracking import EyeMotionEvent
-from icua2.agent.guidance import GuidanceAgentBase as _GAB
 
+from icua2.event import (
+    Event,
+    EyeMotionEvent,
+    MouseButtonEvent,
+    MouseMotionEvent,
+    KeyEvent,
+)
+
+from icua2.agent.guidance import GuidanceAgentBase as _GAB
 from .acceptability import TaskAcceptabilityTracker
 
 
@@ -45,7 +46,7 @@ class GuidanceAgentBase(_GAB):
     @property
     def looking_at_elements(self) -> List[str]:
         try:
-            return next(self.get_latest_user_events(EyeMotionEvent, n=1)).target
+            return next(self.get_latest_user_events(EyeMotionEvent)).target
         except StopIteration:
             return []
 

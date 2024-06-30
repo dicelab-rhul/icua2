@@ -15,6 +15,7 @@ from star_ray.ui import WindowConfiguration
 from icua2 import MultiTaskEnvironment
 from icua2.utils import LOGGER
 from matbii.agent import Avatar
+from star_ray_pygame import Avatar as _Avatar
 
 from matbii import (
     TASK_PATHS,
@@ -99,17 +100,18 @@ avatar = Avatar(
         AvatarTrackingActuator(),
         AvatarResourceManagementActuator(),
     ],
-    eyetracker=(
-        Avatar.get_default_eyetracker(**eyetracking_config)
-        if eyetracking_config["enabled"]
-        else None
-    ),
+    # eyetracker=(
+    #     Avatar.get_default_eyetracker(**eyetracking_config)
+    #     if eyetracking_config["enabled"]
+    #     else None
+    # ),
     window_config=window_config,
 )
 
-# guidance_agent = GuidanceAgentDefault()
-# env = MultiTaskEnvironment(agents=[avatar, guidance_agent], wait=0.05)
-env = MultiTaskEnvironment(agents=[avatar], wait=0.05)
+guidance_agent = GuidanceAgentDefault()
+env = MultiTaskEnvironment(
+    agents=[avatar, guidance_agent], wait=0.05, svg_size=(800, 600)
+)
 
 # NOTE: if you have more tasks to add, add them here! dynamic loading is not enabled by default, if you want to load actuators dynamically, enable it in the ambient.
 env.register_task(

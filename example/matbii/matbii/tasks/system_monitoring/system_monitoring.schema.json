@@ -1,7 +1,7 @@
 {
     "debug": {
         "type": "boolean",
-        "default": true
+        "default": false
     },
     "show_keyboard_shortcuts": {
         "type": "boolean",
