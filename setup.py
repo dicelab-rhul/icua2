@@ -11,7 +11,7 @@ setup(
     url="https://github.com/dicelab-rhul/icua2",
     packages=find_packages(),
     install_requires=[
-        "star_ray[xml,pygame]",
+        "star_ray[xml,pygame]==0.0.2",
         "pyfuncschedule",
         "aiostream",
     ],
