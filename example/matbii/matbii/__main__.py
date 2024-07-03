@@ -17,8 +17,9 @@ from matbii import (
 )
 from star_ray_pygame import Avatar as _Avatar
 from matbii.agent import Avatar
-from icua2.utils import LOGGER
 from icua2 import MultiTaskEnvironment
+
+from icua2.utils import LOGGER
 from star_ray.ui import WindowConfiguration
 from star_ray.utils import ValidatedEnvironment
 from pathlib import Path
@@ -110,9 +111,9 @@ avatar = Avatar(
     window_config=window_config,
 )
 
-guidance_agent = GuidanceAgentDemo()
+# guidance_agent = GuidanceAgentDemo()
 env = MultiTaskEnvironment(
-    agents=[avatar, guidance_agent],
+    agents=[avatar],  # guidance_agent],
     wait=0.05,
     svg_size=config["canvas_size"],
     svg_position=config["canvas_offset"],

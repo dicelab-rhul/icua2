@@ -71,14 +71,14 @@ class MultiTaskEnvironment(Environment):
             """Await pending tasks with a timeout to avoid hanging."""
             for pending_task in pending_tasks:
                 pending_task.cancel()
-
             for pending_task in pending_tasks:
                 try:
                     await asyncio.wait_for(pending_task, timeout=timeout)
                 except asyncio.CancelledError:
                     pass  # print(f"Pending task {pending_task} was cancelled")
                 except asyncio.TimeoutError:
-                    # print(f"Pending task {pending_task} did not finish within timeout")
+                    LOGGER.warning(
+                        f"Pending task {pending_task} did not finish within timeout")
                     pass
 
         async def _run():
@@ -94,7 +94,9 @@ class MultiTaskEnvironment(Environment):
             )
             await _cancel_pending_tasks(pending)
             for task in done:
-                raise task.exception()
+                e = task.exception()
+                if e:
+                    raise e
             # await asyncio.gather(*self.get_schedule())
 
         asyncio.run(_run())
