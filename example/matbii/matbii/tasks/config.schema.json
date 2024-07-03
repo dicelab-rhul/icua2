@@ -109,5 +109,23 @@
     "logging_level": {
         "type": "string",
         "default": "debug"
+    },
+    "logging_path": {
+        "type": "string",
+        "default": "./logs/"
+    },
+    "canvas_size": {
+        "type": "list",
+        "default": [
+            800,
+            600
+        ]
+    },
+    "canvas_offset": {
+        "type": "list",
+        "default": [
+            0,
+            0
+        ]
     }
 }

@@ -1,6 +1,5 @@
-from typing import Dict, Any, ClassVar, Tuple
+from typing import Dict, ClassVar, Tuple
 from pydantic import validator
-import copy
 import lxml.etree as etree
 from star_ray.event import Action
 from star_ray_xml import XMLState, insert, update, select

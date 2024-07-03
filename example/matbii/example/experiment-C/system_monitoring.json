@@ -9,7 +9,7 @@
     "stroke_width": 2,
     "padding": 10,
     "light_state": [
-        0,
+        1,
         0
     ],
     "light_on_color": "#00ff00",

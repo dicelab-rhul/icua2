@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any, Dict, Type, Iterator
+from typing import List, Tuple, Dict, Type, Iterator
 from collections import defaultdict, deque
 from itertools import islice
 from star_ray.agent import Agent, Component, Sensor, Actuator, attempt
@@ -6,15 +6,10 @@ from star_ray.event import (
     Event,
     Observation,
     ErrorObservation,
-    MouseButtonEvent,
-    KeyEvent,
-    MouseMotionEvent,
 )
-from icua2.extras.eyetracking import EyeMotionEvent
 
 from star_ray.pubsub import Subscribe
 from star_ray_xml import select
-
 
 from .acceptability import TaskAcceptabilityTracker
 
@@ -78,8 +73,8 @@ class GuidanceAgentBase(Agent):
             return None
 
     def __sense__(self, state, *args, **kwargs):
-        # for tracker in self._acceptability_trackers.values():
-        #     self._guidance_sensor.sense_acceptability(tracker)
+        for tracker in self._acceptability_trackers.values():
+            self._guidance_sensor.sense_acceptability(tracker)
         return super().__sense__(state, *args, **kwargs)
 
     def on_error_observation(self, component: Component, observation: ErrorObservation):
@@ -112,6 +107,6 @@ class GuidanceAgentBase(Agent):
                 if isinstance(observation, ErrorObservation):
                     self.on_error_observation(actuator, observation)
 
-        # update acceptability
+        # update acceptability, TODO rework this a bit
         for task_id, tracker in self._acceptability_trackers.items():
             self._is_task_acceptable[task_id] = tracker.is_acceptable(self.beliefs)

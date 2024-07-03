@@ -10,7 +10,17 @@ from icua2.event import (
 )
 
 from icua2.agent.guidance import GuidanceAgentBase as _GAB
-from .acceptability import TaskAcceptabilityTracker
+from .acceptability import (
+    TaskAcceptabilityTracker,
+    TrackingAcceptabilityTracker,
+    SystemMonitoringAcceptabilityTracker,
+    ResourceManagementAcceptabilityTracker,
+)
+from .._const import (
+    TASK_ID_RESOURCE_MANAGEMENT,
+    TASK_ID_SYSTEM_MONITORING,
+    TASK_ID_TRACKING,
+)
 
 
 class GuidanceAgentBase(_GAB):
@@ -19,27 +29,32 @@ class GuidanceAgentBase(_GAB):
         self,
         sensors: List[Sensor],
         actuators: List[Actuator],
-        user_input_events: Tuple[Type[Event]] = (
+        input_events: Tuple[Type[Event]] = (
             MouseButtonEvent,
             MouseMotionEvent,
             KeyEvent,
             EyeMotionEvent,
         ),
-        user_input_events_history_size: int | List[int] = 100,
+        input_events_history_size: int | List[int] = 100,
         acceptability_trackers: Dict[str, TaskAcceptabilityTracker] = None,
     ):
-        # TODO use these as defaults?
-        # if TASK_ID_RESOURCE_MANAGEMENT not in
-        #     TASK_ID_RESOURCE_MANAGEMENT: ResourceManagementAcceptabilityTracker(),
-        #     TASK_ID_SYSTEM_MONITORING: SystemMonitoringAcceptabilityTracker(),
-        #     TASK_ID_TRACKING: TrackingAcceptabilityTracker(),
-        # }
-
+        # set acceptability tracker defaults
+        if acceptability_trackers is None:
+            acceptability_trackers = dict()
+        acceptability_trackers.setdefault(
+            TASK_ID_TRACKING, TrackingAcceptabilityTracker()
+        )
+        acceptability_trackers.setdefault(
+            TASK_ID_RESOURCE_MANAGEMENT, ResourceManagementAcceptabilityTracker()
+        )
+        acceptability_trackers.setdefault(
+            TASK_ID_SYSTEM_MONITORING, SystemMonitoringAcceptabilityTracker()
+        )
         super().__init__(
             sensors=sensors,
             actuators=actuators,
-            user_input_events=user_input_events,
-            user_input_events_history_size=user_input_events_history_size,
+            user_input_events=input_events,
+            user_input_events_history_size=input_events_history_size,
             acceptability_trackers=acceptability_trackers,
         )
 
@@ -72,9 +87,3 @@ class GuidanceAgentBase(_GAB):
             return dict(timestamp=event.timestamp, position=event.position)
         except StopIteration:
             return None
-
-    # def __sense__(self, state, *args, **kwargs):
-    #     # TODO
-    #     # for tracker in self._trackers.values():
-    #     #     self._guidance_sensor.sense_acceptability(tracker)
-    #     return super().__sense__(state, *args, **kwargs)

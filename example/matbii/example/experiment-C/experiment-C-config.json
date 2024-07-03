@@ -5,7 +5,7 @@
         "resource_management"
     ],
     "experiment_info": {
-        "id": "experiment-A",
+        "id": "experiment-C",
         "path": "./",
         "duration": 30,
         "meta": {
@@ -16,5 +16,11 @@
     "window_resizable": false,
     "enable_video_recording": false,
     "eyetracking_enabled": false,
-    "eyetracking_calibration_check": false
+    "eyetracking_calibration_check": false,
+    "logging_level": "debug",
+    "logging_path": "./mylogs/",
+    "canvas_size": [
+        800,
+        800
+    ]
 }

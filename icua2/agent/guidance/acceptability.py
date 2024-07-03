@@ -7,7 +7,7 @@ class TaskAcceptabilityTracker(ABC):
 
     @abstractmethod
     def is_acceptable(self, beliefs: Any) -> Any:
-        """Checks whether this task is in an acceptable state given the agents beliefs about the task.
+        """Checks whether this task is in an acceptable state given the agents beliefs about it.
 
         Args:
             beliefs (Dict[str, Any]): beliefs about the task.

@@ -1,9 +1,7 @@
-# TODO schedules that use 0 (or very small values) can cause problems for the browser as the XML update is schedule before the initial sensing of the SVG data. This could be fixed by having the schedule agent wait for the first cycle to finish before starting the schedule...
-
 ####  System Monitoring Task Schedule ####
 
 # this makes the lights turn to their unacceptable state "off"
-off_light(1) @ [1]:*                 # this means failure for light 1
+off_light(1) @ [uniform(10,20)]:*    # this means failure for light 1
 on_light(2) @ [uniform(10,20)]:*     # this means failure for light 2
 # toggle_light(X) is also an option
 

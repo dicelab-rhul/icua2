@@ -10,8 +10,13 @@
 - option for counter factual guidance
 - option for quiting due to eyetracking issues
 - calibration check for eyetracking in the begining, also log this.
-- put old configuration into new files in the demo
 - throttle eyetracking data ?
 
 - reconstruction from log files
-- video
+- implement video recording on start?
+
+- add avatar configuration?
+- add 
+
+- update arrow so it looks like before
+- canvas layout options? - not just canvas size/position, but optional centering?

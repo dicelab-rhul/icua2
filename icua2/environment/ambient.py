@@ -64,6 +64,7 @@ class MultiTaskAmbient(XMLAmbient):
         suppress_warnings: bool = False,
         svg_size: Tuple[float, float] = None,
         svg_position: Tuple[float, float] = None,
+        logging_path: str = None,
         **kwargs,
     ):
         _namespaces = dict(**DEFAULT_XML_NAMESPACES)
@@ -82,7 +83,7 @@ class MultiTaskAmbient(XMLAmbient):
         # initialise various loggers
         self._logger_event = None
         self._logger_xml_event = None
-        self._initialise_logging(**kwargs)
+        self._initialise_logging(logging_path)
         # publisher will notify agents of user events
         self._event_publisher = EventPublisher()
         self._padding = kwargs.get("padding", 10)
@@ -106,7 +107,6 @@ class MultiTaskAmbient(XMLAmbient):
     def __subscribe__(
         self, action: Subscribe | Unsubscribe
     ) -> ActiveObservation | ErrorActiveObservation:
-        print(action)
         if action.topic in SUBSCRIPTION_EVENTS:
             if isinstance(action, Subscribe):
                 self._event_publisher.subscribe(action.topic, action.subscriber)
@@ -119,20 +119,17 @@ class MultiTaskAmbient(XMLAmbient):
                 f"Received invalid subscription, unknown topic: {action.topic}"
             )
 
-    def _initialise_logging(self, **kwargs):
-        # initialise logging, we log to two files:
+    def _initialise_logging(self, logging_path: str):
+        # initialise logging, log to two files:
         # 1. high level events + user input - these are higher level events triggered by the user or agents which will lead to some underlying state update (via their execute method)
         # 2. xml events - these are "raw" updates to the underlying state
-        self._logger_event = EventLogger(
-            kwargs.get(
-                "log_path_event",
-                EventLogger.default_log_path(name="event_log_{datetime}.log"),
-            )
+        loggin_file = EventLogger.default_log_path(
+            path=logging_path, name="event_log_{datetime}.log"
         )
+        self._logger_event = EventLogger(loggin_file)
         self._logger_xml_event = EventLogger(
-            kwargs.get(
-                "log_path_event_xml",
-                EventLogger.default_log_path(name="event_log_xml_{datetime}.log"),
+            loggin_file.with_name(
+                loggin_file.name.replace("event_log", "event_log_xml")
             )
         )
         self._state.subscribe(Update, subscriber=self._logger_xml_event)

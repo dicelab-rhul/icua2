@@ -1,15 +1,15 @@
 ####  Resource Management Task Schedule ####
 
 # these determine pump failures, each pump will fail for 3 seconds 
-# at some uniformly randomly selected time between 15 and 30 seconds.
-toggle_pump_failure("ba") @ [uniform(15,30), 3]:*
-toggle_pump_failure("ab") @ [uniform(15,30), 3]:*
-toggle_pump_failure("fd") @ [uniform(15,30), 3]:*
-toggle_pump_failure("fb") @ [uniform(15,30), 3]:*
-toggle_pump_failure("db") @ [uniform(15,30), 3]:*
-toggle_pump_failure("ec") @ [uniform(15,30), 3]:*
-toggle_pump_failure("ea") @ [uniform(15,30), 3]:*
-toggle_pump_failure("ca") @ [uniform(15,30), 3]:*
+# at some uniformly randomly selected time between 30 and 60 seconds.
+toggle_pump_failure("ba") @ [uniform(30,60), 3]:*
+toggle_pump_failure("ab") @ [uniform(30,60), 3]:*
+toggle_pump_failure("fd") @ [uniform(30,60), 3]:*
+toggle_pump_failure("fb") @ [uniform(30,60), 3]:*
+toggle_pump_failure("db") @ [uniform(30,60), 3]:*
+toggle_pump_failure("ec") @ [uniform(30,60), 3]:*
+toggle_pump_failure("ea") @ [uniform(30,60), 3]:*
+toggle_pump_failure("ca") @ [uniform(30,60), 3]:*
 
 # these determine the burning of fuel in the two main tanks ("a" and "b")
 # 0.5 units will be burned every 0.1 seconds (5 units per second)

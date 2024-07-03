@@ -36,7 +36,9 @@ class EventLogger(Subscriber):
         self.log(message)
 
     @staticmethod
-    def default_log_path(path="./logs/", name=None):
+    def default_log_path(path=None, name=None):
+        if path is None:
+            path = "./logs/"
         current_time = datetime.now()
         timestamp = current_time.strftime("%Y-%m-%d-%H-%M-%S")
         name = name if name is not None else f"event_log_{timestamp}.log"

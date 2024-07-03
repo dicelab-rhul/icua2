@@ -3,19 +3,38 @@ from star_ray_xml import select
 from icua2.agent.guidance import TaskAcceptabilityTracker
 
 from ..tasks.system_monitoring import SetLightAction
+from .._const import (
+    TASK_ID_SYSTEM_MONITORING,
+    TASK_ID_RESOURCE_MANAGEMENT,
+    TASK_ID_TRACKING,
+)
 
 
 class SystemMonitoringAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]) -> Dict[str, bool]:
-        return {
-            "light-1": self.is_light_acceptable(1, beliefs),
-            "light-2": self.is_light_acceptable(2, beliefs),
-            "slider-1": self.is_slider_acceptable(1, beliefs),
-            "slider-2": self.is_slider_acceptable(2, beliefs),
-            "slider-3": self.is_slider_acceptable(3, beliefs),
-            "slider-4": self.is_slider_acceptable(4, beliefs),
+        result = {
+            f"{TASK_ID_SYSTEM_MONITORING}.light-1": self.is_light_acceptable(
+                1, beliefs
+            ),
+            f"{TASK_ID_SYSTEM_MONITORING}.light-2": self.is_light_acceptable(
+                2, beliefs
+            ),
+            f"{TASK_ID_SYSTEM_MONITORING}.slider-1": self.is_slider_acceptable(
+                1, beliefs
+            ),
+            f"{TASK_ID_SYSTEM_MONITORING}.slider-2": self.is_slider_acceptable(
+                2, beliefs
+            ),
+            f"{TASK_ID_SYSTEM_MONITORING}.slider-3": self.is_slider_acceptable(
+                3, beliefs
+            ),
+            f"{TASK_ID_SYSTEM_MONITORING}.slider-4": self.is_slider_acceptable(
+                4, beliefs
+            ),
         }
+        result[TASK_ID_SYSTEM_MONITORING] = all(result.values())
+        return result
 
     def is_slider_acceptable(self, _id: int, beliefs: Dict[str, Any]):
         # sliders should be at the center position (according to SetSliderAction.acceptable_state which is incs // 2 + 1)
@@ -50,11 +69,15 @@ class SystemMonitoringAcceptabilityTracker(TaskAcceptabilityTracker):
 class TrackingAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]):
-        return {"target": self.is_tracking_acceptable(beliefs)}
+        return {TASK_ID_TRACKING: self.is_tracking_acceptable(beliefs)}
 
     def is_tracking_acceptable(self, beliefs: Dict[str, Any]):
-        target = beliefs[tracking_target_id()]
-        box = beliefs[tracking_box_id()]
+        target = beliefs.get(tracking_target_id(), None)
+        box = beliefs.get(tracking_box_id(), None)
+        if target is None or box is None:
+            raise ValueError(
+                f"Failed to determine acceptability of task: '{TASK_ID_TRACKING}'.\n-- Missing beliefs for elements: '{tracking_target_id()}' and/or '{tracking_box_id()}'"
+            )
         target_top_left = (target["x"], target["y"])
         target_size = (target["width"], target["height"])
         box_top_left = (box["x"], box["y"])
@@ -93,10 +116,16 @@ class TrackingAcceptabilityTracker(TaskAcceptabilityTracker):
 class ResourceManagementAcceptabilityTracker(TaskAcceptabilityTracker):
 
     def is_acceptable(self, beliefs: Dict[str, Any]):
-        return {
-            "tank-a": self.is_tank_acceptable("a", beliefs),
-            "tank-b": self.is_tank_acceptable("b", beliefs),
+        result = {
+            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-a": self.is_tank_acceptable(
+                "a", beliefs
+            ),
+            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-b": self.is_tank_acceptable(
+                "b", beliefs
+            ),
         }
+        result[TASK_ID_RESOURCE_MANAGEMENT] = all(result.values())
+        return result
 
     def is_tank_acceptable(self, _id: str, beliefs: Dict[str, Any]):
         tank = beliefs[tank_id(_id)]
@@ -126,6 +155,9 @@ class ResourceManagementAcceptabilityTracker(TaskAcceptabilityTracker):
             for id in tank_levels
         ]
         return [*tank_selects, *tank_level_selects]
+
+
+###### constant IDs for tasks ######
 
 
 def tank_id(tank: str):

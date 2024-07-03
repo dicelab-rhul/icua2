@@ -19,6 +19,7 @@ class MultiTaskEnvironment(Environment):
         wait: float = 0.05,
         svg_size: Tuple[float, float] = None,
         svg_position: Tuple[float, float] = None,
+        logging_path: str = None,
     ):
         ambient = MultiTaskAmbient(
             agents=agents,
@@ -28,6 +29,7 @@ class MultiTaskEnvironment(Environment):
             suppress_warnings=suppress_warnings,
             svg_size=svg_size,
             svg_position=svg_position,
+            logging_path=logging_path,
         )
         super().__init__(
             ambient=ambient,
@@ -67,10 +69,34 @@ class MultiTaskEnvironment(Environment):
         )
 
     def run(self):
+        async def _cancel_pending_tasks(pending_tasks, timeout=0.5):
+            """Await pending tasks with a timeout to avoid hanging."""
+            for pending_task in pending_tasks:
+                pending_task.cancel()
+
+            for pending_task in pending_tasks:
+                try:
+                    await asyncio.wait_for(pending_task, timeout=timeout)
+                except asyncio.CancelledError:
+                    pass  # print(f"Pending task {pending_task} was cancelled")
+                except asyncio.TimeoutError:
+                    pass  # print(f"Pending task {pending_task} did not finish within timeout")
+
         async def _run():
             event_loop = asyncio.get_event_loop()
             await self.__initialise__(event_loop)
-            await asyncio.gather(*self.get_schedule())
+            tasks = self.get_schedule()
+            # print(tasks)
+            # The default behaviour here is to exit the program if there is an exception,
+            # this is because we dont want any silent failures during an experiment as it may invalidate any experimental results.
+            # if this is not desired behaviour, you should override this method and continue execution after e.g. logging the exception.
+            done, pending = await asyncio.wait(
+                tasks, return_when=asyncio.FIRST_EXCEPTION
+            )
+            await _cancel_pending_tasks(pending)
+            for task in done:
+                raise task.exception()
+            # await asyncio.gather(*self.get_schedule())
 
         asyncio.run(_run())
 
@@ -90,19 +116,26 @@ class MultiTaskEnvironment(Environment):
 
     async def run_agent_no_wait(self, agent) -> bool:
         # TODO check that the agent is alive...
-        while self._ambient.is_alive:  # check that the agent is alive...?
-            await agent.__sense__(self._ambient)
-            await agent.__cycle__()
-            await agent.__execute__(self._ambient)
+        try:
+            while self._ambient.is_alive:  # check that the agent is alive...?
+                await agent.__sense__(self._ambient)
+                await agent.__cycle__()
+                await agent.__execute__(self._ambient)
+        except asyncio.CancelledError:
+            pass
 
     async def run_agent(self, agent) -> bool:
-        # TODO check that the agent is alive...
-        while self._ambient.is_alive:  # check that the agent is alive...?
-            await asyncio.sleep(self._wait)
-            await agent.__sense__(self._ambient)
-            await agent.__cycle__()
-            await agent.__execute__(self._ambient)
-        print("??")
+        try:
+            # TODO check that the agent is alive...
+            while self._ambient.is_alive:  # check that the agent is alive...?
+                await asyncio.sleep(self._wait)
+                await agent.__sense__(self._ambient)
+                await agent.__cycle__()
+                await agent.__execute__(self._ambient)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            raise e  # re-raise
 
     # async def __initialise__(self, event_loop):
     #     await self._ambient.__initialise__()

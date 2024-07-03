@@ -32,7 +32,7 @@ from matbii.tasks import (
     AvatarSystemMonitoringActuator,
     AvatarResourceManagementActuator,
 )
-from matbii.guidance import GuidanceAgentBase, GuidanceAgentDefault
+from matbii.guidance import GuidanceAgentBase, GuidanceAgentDemo
 
 # load configuration file
 parser = argparse.ArgumentParser()
@@ -46,11 +46,14 @@ parser.add_argument(
 args = parser.parse_args()
 config = ValidatedEnvironment.load_and_validate_context(str(CONFIG_PATH), args.config)
 LOGGER.setLevel(LOGGING_LEVELS[config["logging_level"]])
+
+
 if args.config:
     LOGGER.debug("Using config file: %s", args.config)
 else:
     LOGGER.debug("No config file was specified, using default configuration.")
 LOGGER.debug("Configuration:\n%s", pformat(config, indent=0)[1:-1])
+
 
 window_config = WindowConfiguration(
     x=config["window_x"],
@@ -108,9 +111,13 @@ avatar = Avatar(
     window_config=window_config,
 )
 
-guidance_agent = GuidanceAgentDefault()
+guidance_agent = GuidanceAgentDemo()
 env = MultiTaskEnvironment(
-    agents=[avatar, guidance_agent], wait=0.05, svg_size=(800, 600)
+    agents=[avatar, guidance_agent],
+    wait=0.05,
+    svg_size=config["canvas_size"],
+    svg_position=config["canvas_offset"],
+    logging_path=config["logging_path"],
 )
 
 # NOTE: if you have more tasks to add, add them here! dynamic loading is not enabled by default, if you want to load actuators dynamically, enable it in the ambient.
