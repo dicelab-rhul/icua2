@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     install_requires=["icua2"],
     extras_require={
-        "tobii": ["icua2[tobii]"],
+        "tobii": ["icua2[tobii]==0.0.2"],
     },
     python_requires=">=3.10",
     classifiers=[

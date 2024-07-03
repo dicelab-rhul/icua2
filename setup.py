@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="icua2",
-    version="0.0.1",
+    version="0.0.2",
     author="Benedict Wilkins",
     author_email="benrjw@gmail.com",
     description="Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance.",
