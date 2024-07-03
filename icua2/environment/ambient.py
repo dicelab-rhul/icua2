@@ -61,7 +61,6 @@ class MultiTaskAmbient(XMLAmbient):
         svg: str = None,
         namespaces: Dict[str, str] = None,
         enable_dynamic_loading: bool = False,
-        suppress_warnings: bool = False,
         svg_size: Tuple[float, float] = None,
         svg_position: Tuple[float, float] = None,
         logging_path: str = None,
@@ -78,7 +77,6 @@ class MultiTaskAmbient(XMLAmbient):
         )
         self._task_loader = TaskLoader()
         self._enable_dynamic_loading = enable_dynamic_loading
-        self.suppress_warnings = suppress_warnings
         self._tasks: Dict[str, _Task] = dict()
         # initialise various loggers
         self._logger_event = None
@@ -109,9 +107,11 @@ class MultiTaskAmbient(XMLAmbient):
     ) -> ActiveObservation | ErrorActiveObservation:
         if action.topic in SUBSCRIPTION_EVENTS:
             if isinstance(action, Subscribe):
-                self._event_publisher.subscribe(action.topic, action.subscriber)
+                self._event_publisher.subscribe(
+                    action.topic, action.subscriber)
             elif isinstance(action, Unsubscribe):
-                self._event_publisher.unsubscribe(action.topic, action.subscriber)
+                self._event_publisher.unsubscribe(
+                    action.topic, action.subscriber)
         elif action.topic in SUBSCRIPTION_XML_EVENTS:
             return super().__subscribe__(action)
         else:
@@ -152,7 +152,6 @@ class MultiTaskAmbient(XMLAmbient):
             path,
             agent_actuators=agent_actuators,
             avatar_actuators=avatar_actuators,
-            suppress_warnings=self.suppress_warnings,
             enable_dynamic_loading=self._enable_dynamic_loading,
         )
         if enable:
@@ -177,7 +176,8 @@ class MultiTaskAmbient(XMLAmbient):
             self._tasks[name] = self._tasks[task_name]
             del self._tasks[task_name]
         else:
-            raise ValueError(f"Failed to rename task: {task_name} as it doesn't exist.")
+            raise ValueError(
+                f"Failed to rename task: {task_name} as it doesn't exist.")
 
     def enable_task(
         self, task_name: str, context: Dict[str, Any] = None, insert_at: int = 0

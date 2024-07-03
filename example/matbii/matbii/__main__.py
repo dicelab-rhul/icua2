@@ -1,29 +1,5 @@
 # this solves an issue with some linux systems...
-import os
-from pprint import pformat
-from logging import INFO, DEBUG
-
-LOGGING_LEVELS = {"debug": DEBUG, "info": INFO}
-
-os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
-
-import argparse
-from pathlib import Path
-
-from star_ray.utils import ValidatedEnvironment
-from star_ray.ui import WindowConfiguration
-from icua2 import MultiTaskEnvironment
-from icua2.utils import LOGGER
-from matbii.agent import Avatar
-from star_ray_pygame import Avatar as _Avatar
-
-from matbii import (
-    TASK_PATHS,
-    TASK_ID_TRACKING,
-    TASK_ID_RESOURCE_MANAGEMENT,
-    TASK_ID_SYSTEM_MONITORING,
-    CONFIG_PATH,
-)
+from matbii.guidance import GuidanceAgentBase, GuidanceAgentDemo
 from matbii.tasks import (
     TrackingActuator,
     SystemMonitoringActuator,
@@ -32,7 +8,29 @@ from matbii.tasks import (
     AvatarSystemMonitoringActuator,
     AvatarResourceManagementActuator,
 )
-from matbii.guidance import GuidanceAgentBase, GuidanceAgentDemo
+from matbii import (
+    TASK_PATHS,
+    TASK_ID_TRACKING,
+    TASK_ID_RESOURCE_MANAGEMENT,
+    TASK_ID_SYSTEM_MONITORING,
+    CONFIG_PATH,
+)
+from star_ray_pygame import Avatar as _Avatar
+from matbii.agent import Avatar
+from icua2.utils import LOGGER
+from icua2 import MultiTaskEnvironment
+from star_ray.ui import WindowConfiguration
+from star_ray.utils import ValidatedEnvironment
+from pathlib import Path
+import argparse
+import os
+from pprint import pformat
+from logging import INFO, DEBUG
+
+LOGGING_LEVELS = {"debug": DEBUG, "info": INFO}
+
+os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
+
 
 # load configuration file
 parser = argparse.ArgumentParser()
@@ -44,7 +42,8 @@ parser.add_argument(
     default=None,
 )
 args = parser.parse_args()
-config = ValidatedEnvironment.load_and_validate_context(str(CONFIG_PATH), args.config)
+config = ValidatedEnvironment.load_and_validate_context(
+    str(CONFIG_PATH), args.config)
 LOGGER.setLevel(LOGGING_LEVELS[config["logging_level"]])
 
 

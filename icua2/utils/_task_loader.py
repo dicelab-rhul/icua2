@@ -91,7 +91,6 @@ class TaskLoader:
         agent_actuators: List[Callable[[], Actuator]] = None,
         avatar_actuators: List[Callable[[], Actuator]] = None,
         enable_dynamic_loading: bool = False,
-        suppress_warnings: bool = False,
     ) -> _Task:
         """Registers the given task. Loads relevant configuration files.
 
@@ -101,100 +100,110 @@ class TaskLoader:
             agent_actuators (List[Callable[[], Actuator]], optional): classes to be used for agent actuators. Defaults to None.
             avatar_actuators (List[Callable[[], Actuator]], optional): classes to be used for avatar actuators. Defaults to None.
             enable_dynamic_loading (bool, optional): whether to dynamically load actuators from any `.py` files found in the task path(s). Defaults to False.
-            suppress_warnings (bool, optional): whether to supress warnings. Defaults to False.
 
         Returns:
             Task: the configured task
         """
-        if isinstance(path, (str, Path)):
+        if not isinstance(name, str):
+            raise TypeError("Invalid argument 'name': must be of type 'str'")
+        if isinstance(path, str):
             path = [path]
-        path = [Path(p).expanduser().resolve().absolute() for p in path]
+        elif isinstance(path, Path):
+            path = [path.as_posix()]
+        elif isinstance(path, list):
+            path = [Path(p).expanduser().resolve().absolute().as_posix()
+                    for p in path]
+        else:
+            raise TypeError(
+                "Invalid argument 'path': must be of type 'str' or 'List[str]'")
         LOGGER.debug(
-            "Registering task: `%s` at path(s): `%s`", name, [str(p) for p in path]
+            "Registering task: `%s` at path(s): `%s`", name, [
+                p for p in path]
         )
         self._template_loader.add_namespace(name, path)
-        # FILES
-        # <TASK>.svg(.jinja)
-        # <TASK>.schema.json AND/OR <TASK>.json
-        # <TASK>.sch
-        files = self._get_task_files(name, suppress_warnings=suppress_warnings)
-        state = self.load_state(name, files, suppress_warnings=suppress_warnings)
+        # FILES: <TASK>.svg(.jinja), <TASK>.schema.json AND/OR <TASK>.json, <TASK>.sch
+        files = self._get_task_files(name)
+        # print(files)
+        state = self.load_state(
+            name, files)
 
         agent_actuators = (
-            copy.deepcopy(agent_actuators) if not agent_actuators is None else []
+            copy.deepcopy(
+                agent_actuators) if not agent_actuators is None else []
         )
         avatar_actuators = (
-            copy.deepcopy(avatar_actuators) if not avatar_actuators is None else []
+            copy.deepcopy(
+                avatar_actuators) if not avatar_actuators is None else []
         )
 
         # *.py (for dynamic loading)
         # TODO this should work the same as with config files - i.e. overriding the .py files.
         # Currently just loads .py files from all paths, overriding is not yet supported!
-        for p in path:
-            # both sets of actuators are updated in the method call
-            self.load_actuators(
-                name,
-                p,
-                agent_actuators,
-                avatar_actuators,
-                enable_dynamic_loading=enable_dynamic_loading,
-                suppress_warnings=suppress_warnings,
-            )
+        # both sets of actuators are updated in the method call
+        agent_actuators, avatar_actuators = self.load_actuators(
+            name,
+            path,
+            agent_actuators,
+            avatar_actuators,
+            enable_dynamic_loading=enable_dynamic_loading,
+        )
 
         agent_factory = self.load_schedule(
             name,
             files,
             agent_actuators,
-            suppress_warnings=suppress_warnings,
         )
         return _Task(state, agent_factory, avatar_actuators)
 
     def load_state(
-        self, task_name: str, files: Dict[str, str], suppress_warnings: bool = False
+        self, task_name: str, files: Dict[str, str],
     ) -> Template:
         state_path, _, _ = self._validate_state_files(
-            files, task_name=task_name, suppress_warnings=suppress_warnings
+            files, task_name=task_name
         )
-        # this template contains all required information about the context and schema files,
-        # and will validate any additional context automatically
-        return self._jinja_env.get_template(str(state_path))
+        # NOTE this template contains all required information about the context and schema files, and will validate any additional context automatically
+        return self._jinja_env.get_template(state_path.as_posix())
 
+    @LOGGER.indent
     def load_actuators(
         self,
         task_name: str,
-        path: str,
+        paths: List[str],
         agent_actuators: List[Type[Actuator]] | None,
         avatar_actuators: List[Type[Actuator]] | None,
         enable_dynamic_loading: bool = False,
         suppress_warnings: bool = False,
     ):
+        LOGGER.debug("loading actuators:")
         if agent_actuators is None:
             agent_actuators = []
         if avatar_actuators is None:
             avatar_actuators = []
         if enable_dynamic_loading:
-            actuator_classes, _ = load_task_package_from_path(
-                path, task_name, suppress_warnings=suppress_warnings
+            for path in paths:
+                actuator_classes, _ = load_task_package_from_path(
+                    path, task_name, suppress_warnings=suppress_warnings
+                )
+                if not actuator_classes["agent"] and not actuator_classes["avatar"]:
+                    raise TaskConfigurationError(
+                        f"No actuator classes were found in task plugin, did you forget to tag with @{agent_actuator.__name__} or @{avatar_actuator.__name__}?"
+                    )
+                agent_actuators.extend(actuator_classes["agent"])
+                avatar_actuators.extend(actuator_classes["avatar"])
+
+        if agent_actuators:
+            LOGGER.debug(
+                LOGGER.format_iterable(
+                    agent_actuators, message="agent:", indent=True
+                )
             )
-            if not actuator_classes["agent"] and not actuator_classes["avatar"]:
-                raise TaskConfigurationError(
-                    f"No actuator classes were found in task plugin, did you forget to tag with @{agent_actuator.__name__} or @{avatar_actuator.__name__}?"
+        if avatar_actuators:
+            LOGGER.debug(
+                LOGGER.format_iterable(
+                    avatar_actuators, message="avatar:", indent=True
                 )
-            agent_actuators.extend(actuator_classes["agent"])
-            avatar_actuators.extend(actuator_classes["avatar"])
-        with LOGGER.indent:
-            if agent_actuators:
-                LOGGER.debug(
-                    LOGGER.format_iterable(
-                        agent_actuators, message=" agent@", indent=True
-                    )
-                )
-            if avatar_actuators:
-                LOGGER.debug(
-                    LOGGER.format_iterable(
-                        avatar_actuators, message="avatar@", indent=True
-                    )
-                )
+            )
+
         return agent_actuators, avatar_actuators
 
     def get_default_funcs(self):
@@ -208,13 +217,11 @@ class TaskLoader:
         task_name: str,
         files: Dict[str, str],
         agent_actuators: List[Type[Actuator]] | None,
-        suppress_warnings: bool = False,
     ):
         # is the task static? (i.e. is there an agent that will be updating the task)
         schedule_path = self._validate_schedule_files(
             files,
             task_name=task_name,
-            suppress_warnings=suppress_warnings,
             runtime_actions=len(agent_actuators) > 0,
         )
         if schedule_path:
@@ -222,7 +229,8 @@ class TaskLoader:
             LOGGER.debug("loading schedule: `%s`", schedule_path.name)
             # TODO perhaps we shouldnt load as a template... just load as text?
             # the templating syntax might interfere with things?
-            schedule_source = self._jinja_env.get_template(str(schedule_path)).render()
+            schedule_source = self._jinja_env.get_template(
+                schedule_path.as_posix()).render()
             with LOGGER.indent:
                 # print(agent_actuators)
                 agent_factory = ScheduledAgentFactory(
@@ -237,8 +245,7 @@ class TaskLoader:
         files: Dict[str, str],
         task_name: str,
         runtime_actions=False,
-        suppress_warnings: bool = False,
-    ):
+    ) -> Path:
         if not EXT_SCHEDULE in files and runtime_actions:
             raise TaskConfigurationError(
                 f"Configuration file: `{task_name}{EXT_SCHEDULE}` is missing for task: `{task_name}`"
@@ -256,8 +263,9 @@ class TaskLoader:
 
     @LOGGER.indent
     def _validate_state_files(
-        self, files: Dict[str, str], task_name: str, suppress_warnings: bool = False
-    ):
+        self, files: Dict[str, str], task_name: str
+    ) -> Tuple[Path, Path, Path]:
+
         state_path, context_path, schema_path = None, None, None
         # check that state files exist
         if EXT_SVG in files:
@@ -273,7 +281,7 @@ class TaskLoader:
                     raise TaskConfigurationError(
                         f"Configuration file: `{task_name}{EXT_CONTEXT}` is missing from task template: `{state_path.name}`."
                     )
-                elif not has_schema and not suppress_warnings:
+                elif not has_schema:
                     LOGGER.warning(
                         "validation schema: `%s%s` is missing from task template: `%s`",
                         task_name,
@@ -283,7 +291,8 @@ class TaskLoader:
 
                 if has_schema:
                     schema_path = files[EXT_SCHEMA]
-                    LOGGER.debug("with validator schema: `%s`", schema_path.name)
+                    LOGGER.debug("with validator schema: `%s`",
+                                 schema_path.name)
                 if has_context:
                     context_path = files[EXT_CONTEXT]
                     LOGGER.debug("with context: `%s`", context_path.name)
@@ -389,4 +398,5 @@ def _get_module_from_file(file: str | Path, module_name: str):
         spec.loader.exec_module(module)
         return module
     else:
-        raise ImportError(f"Failed to load task module from the given path: `{file}`")
+        raise ImportError(
+            f"Failed to load task module from the given path: `{file}`")

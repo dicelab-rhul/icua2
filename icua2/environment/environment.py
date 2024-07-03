@@ -15,7 +15,6 @@ class MultiTaskEnvironment(Environment):
         svg: str = None,
         namespaces: Dict[str, str] = None,
         enable_dynamic_loading: bool = False,
-        suppress_warnings: bool = False,
         wait: float = 0.05,
         svg_size: Tuple[float, float] = None,
         svg_position: Tuple[float, float] = None,
@@ -26,7 +25,6 @@ class MultiTaskEnvironment(Environment):
             svg=svg,
             namespaces=namespaces,
             enable_dynamic_loading=enable_dynamic_loading,
-            suppress_warnings=suppress_warnings,
             svg_size=svg_size,
             svg_position=svg_position,
             logging_path=logging_path,
@@ -80,7 +78,8 @@ class MultiTaskEnvironment(Environment):
                 except asyncio.CancelledError:
                     pass  # print(f"Pending task {pending_task} was cancelled")
                 except asyncio.TimeoutError:
-                    pass  # print(f"Pending task {pending_task} did not finish within timeout")
+                    # print(f"Pending task {pending_task} did not finish within timeout")
+                    pass
 
         async def _run():
             event_loop = asyncio.get_event_loop()
@@ -109,7 +108,8 @@ class MultiTaskEnvironment(Environment):
         for agent in self._ambient.get_agents():
             if isinstance(agent.get_inner(), ScheduledAgent):
                 # schedule agents are fully async, they will wait to execute according to their schedule.
-                tasks.append(asyncio.create_task(self.run_agent_no_wait(agent)))
+                tasks.append(asyncio.create_task(
+                    self.run_agent_no_wait(agent)))
             else:
                 tasks.append(asyncio.create_task(self.run_agent(agent)))
         return tasks
