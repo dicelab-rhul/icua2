@@ -5,13 +5,13 @@ from star_ray.agent import Actuator, attempt
 from star_ray_xml import Update
 from matbii.agent.avatar import Avatar, PygameAvatar
 from star_ray_xml import XMLAmbient
-from star_ray.environment.wrapper_state import State
+from star_ray.environment import _Ambient
 from icua2.extras.eyetracking import EyeMotionEvent
 
 
 class EyeFollow(Actuator):
 
-    @attempt(route_events=(EyeMotionEvent,))
+    @attempt
     def attempt(self, event: EyeMotionEvent):
         cx, cy = event.position
         action = Update(xpath="//*[@id='mycircle']", attrs=dict(cx=cx, cy=cy))
@@ -52,7 +52,7 @@ async def main(
         fill="{color}" />
     </svg:svg>""",
     )
-    state = State.new(state)
+    state = _Ambient.new(state)
     avatar = state.get_agents()[0]
     await state.__initialise__()
     await avatar.__initialise__(state)

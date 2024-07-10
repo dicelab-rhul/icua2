@@ -180,54 +180,22 @@ class MultiTaskAmbient(XMLAmbient):
                 f"Failed to rename task: {task_name} as it doesn't exist.")
 
     def enable_task(
-        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = 0
+        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = -1
     ):
         task = self._tasks[task_name]
         agent = task.get_agent()
         if agent:
             self.add_agent(agent)
             # check if the agent has already been initialised...
-
         # default is to insert as the first child of the root
         self._state.insert(
             insert(xpath="/svg:svg", element=task.get_xml(context), index=insert_at)
         )
-
-        # update the bounding rectangle of the root svg... this is default behaviour TODO an option for this...
-        # also adds some padding around tasks...
-        # bounds = list(
-        #     self._state.select(
-        #         select(xpath="/svg:svg/svg:svg", attrs=["x", "y", "width", "height"])
-        #     )
-        # )
-        # bounds.append(dict(x=0, y=0, width=0, height=0))
-        # # # TODO validate bounds
-        # brect = bounding_rectangle(bounds)
-        # self._state.update(
-        #     update(
-        #         xpath="/svg:svg/svg:svg",
-        #         attrs=dict(
-        #             x=Expr("{value}+{padding}", padding=self._padding),
-        #             y=Expr("{value}+{padding}", padding=self._padding),
-        #         ),
-        #     )
-        # )
-        # self._state.update(
-        #     update(
-        #         xpath="/svg:svg",
-        #         attrs=dict(
-        #             width=brect["width"] + self._padding * 2,
-        #             height=brect["height"] + self._padding * 2,
-        #         ),
-        #     )
-        # )
         event = TaskEnabledEvent(task_name=task_name)
         self._event_publisher.notify_subscribers(event)
-        self._logger_event.log(event)
 
     def disable_task(self, task_name: str):
         raise NotImplementedError()  # TODO
-        self._logger_event.log(TaskDisabledEvent(task_name=task_name))
 
     def __update__(self, action):
         result = None
@@ -241,6 +209,7 @@ class MultiTaskAmbient(XMLAmbient):
             self.disable_task(action.task_name)
         else:
             result = super().__update__(action)
+
         # TODO check for errors before logging...
         self._logger_event.log(action)
 

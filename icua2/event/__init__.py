@@ -1,32 +1,42 @@
+from typing import Tuple, Type
+from star_ray_pygame.event import *
+# TODO try-except this?
+from ..extras.eyetracking import EyeMotionEvent
 from .task_event import EnableTask, DisableTask, TaskEnabledEvent, TaskDisabledEvent
 
-from star_ray.event import Event
-from star_ray_pygame.event import (
-    MouseMotionEvent,
-    MouseButtonEvent,
-    KeyEvent,
-    WindowOpenEvent,
-    WindowCloseEvent,
-    WindowFocusEvent,
-    WindowMoveEvent,
-    WindowResizeEvent,
-)
+USER_INPUT_TYPES: Tuple[Type] = (MouseMotionEvent,
+                                 MouseButtonEvent,
+                                 KeyEvent,
+                                 WindowOpenEvent,
+                                 WindowCloseEvent,
+                                 WindowFocusEvent,
+                                 WindowMoveEvent,
+                                 WindowResizeEvent,
+                                 EyeMotionEvent
+                                 )
 
-# TODO try this?
-from icua2.extras.eyetracking import EyeMotionEvent
-
+UserInputEvent = UserInputEvent | EyeMotionEvent
 
 __all__ = (
-    "Event",
+    "UserInputEvent",
+    "MouseEvent",
+    "WindowEvent",
     "EyeMotionEvent",
-    "MouseMotionEvent",
     "MouseButtonEvent",
+    "MouseMotionEvent",
     "KeyEvent",
-    "WindowOpenEvent",
     "WindowCloseEvent",
     "WindowFocusEvent",
     "WindowMoveEvent",
+    "WindowOpenEvent",
     "WindowResizeEvent",
+    "XMLQuery",
+    "XPathQuery",
+    "Update",
+    "Select",
+    "Insert",
+    "Delete",
+    "Replace",
     "EnableTask",
     "DisableTask",
     "TaskEnabledEvent",

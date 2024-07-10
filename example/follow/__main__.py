@@ -16,13 +16,10 @@ PATH = pathlib.Path(__file__).parent / "task"
 
 class DefaultActuator(Actuator):
 
-    @attempt(
-        route_events=(MouseButtonEvent, MouseMotionEvent, KeyEvent, WindowCloseEvent)
-    )
-    def default(self, action):
+    @attempt
+    def default(self, action: MouseButtonEvent | MouseMotionEvent | KeyEvent | WindowCloseEvent):
         return action
 
-    @attempt(route_events=(MouseButtonEvent,))
     def place(self, action: MouseButtonEvent):
         if action.button == MouseButtonEvent.BUTTON_LEFT:
             if action.status == MouseButtonEvent.DOWN:

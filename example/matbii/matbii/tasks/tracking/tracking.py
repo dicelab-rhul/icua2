@@ -4,12 +4,12 @@ import time
 from typing import Tuple
 from pydantic import validator
 
-from star_ray_xml import XMLState, Template, Expr, update, select
-from star_ray_pygame.event import (
-    KeyEvent,
+from star_ray_xml import XMLState, Template, update, select
+from icua2.event import (
+    KeyEvent, XMLQuery
 )
 from icua2.utils import LOGGER
-from icua2.agent import Action, Actuator, attempt
+from icua2.agent import Actuator, attempt
 
 
 from ..._const import DEFAULT_KEY_BINDING  # TODO support other key bindings?
@@ -48,11 +48,12 @@ class AvatarTrackingActuator(Actuator):
                 result[0] += direction[0]
                 result[1] += direction[1]
             if result[0] != 0 or result[1] != 0:
-                actions.append(TargetMoveAction(direction=tuple(result), speed=speed))
+                actions.append(TargetMoveAction(
+                    direction=tuple(result), speed=speed))
         self._prev_time = current_time
         return actions
 
-    @attempt(route_events=[KeyEvent])
+    @attempt
     def attempt_key_event(self, user_action: KeyEvent):
         if user_action.key.lower() in DEFAULT_KEY_BINDING:
             if user_action.status == KeyEvent.UP:
@@ -61,7 +62,7 @@ class AvatarTrackingActuator(Actuator):
                 self._keys_pressed.add(user_action.key)
         return []  # these will be recorded by the DefaultActuator
 
-    # @attempt(route_events=[JoyStickEvent])
+    # @attempt
     # def attempt_joystick_event(self, user_action: JoyStickEvent):
     #     # TODO If a joystick device is used (and supported elsewhere), this is where we would handle the action.
     #     # the handling should look similar to key events above but might require some work (if the input is continuous for example)
@@ -88,12 +89,12 @@ class TrackingActuator(Actuator):
 
 
 # TODO ??
-class TrackingModeAction(Action):
+class TrackingModeAction(XMLQuery):
 
     manual: bool
 
 
-class TargetMoveAction(Action):
+class TargetMoveAction(XMLQuery):
     direction: Tuple[float, float]
     speed: float
 
@@ -107,14 +108,15 @@ class TargetMoveAction(Action):
                 if d == 0:
                     return (0.0, 0.0)
                 return (float(value[0]) / d, float(value[1]) / d)
-        raise ValueError(f"Invalid direction {value}, must be Tuple[float,float].")
+        raise ValueError(
+            f"Invalid direction {value}, must be Tuple[float,float].")
 
     @validator("speed", pre=True, always=True)
     @classmethod
     def _validate_speed(cls, value):
         return float(value)
 
-    def execute(self, state: XMLState):
+    def __execute__(self, state: XMLState):
         if self.direction == (0.0, 0.0):
             LOGGER.warning(
                 "Attempted %s with direction (0,0)", TargetMoveAction.__name__

@@ -37,7 +37,7 @@ class MultiTaskEnvironment(Environment):
         self._agent_scheduler = None
 
     def enable_task(
-        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = 0
+        self, task_name: str, context: Dict[str, Any] = None, insert_at: int = -1
     ):
         # TODO what if this is remote!
         self._ambient._inner.enable_task(

@@ -1,10 +1,6 @@
 
-
+- getting task inactivity working in the guidance agents
 - configuration for guidance agent
-- arrow config
-- arrow following / fixed
-
-- demo with different experiment directories
 
 - scripts for loading and visualising
 - option for counter factual guidance
@@ -16,7 +12,5 @@
 - implement video recording on start?
 
 - add avatar configuration?
-- add 
 
-- update arrow so it looks like before
 - canvas layout options? - not just canvas size/position, but optional centering?

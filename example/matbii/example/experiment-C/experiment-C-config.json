@@ -1,8 +1,8 @@
 {
     "enable_tasks": [
+        "resource_management",
         "tracking",
-        "system_monitoring",
-        "resource_management"
+        "system_monitoring"
     ],
     "experiment_info": {
         "id": "experiment-C",

@@ -2,9 +2,10 @@ import sys
 import aiostream
 import asyncio
 import itertools
+import inspect
 from typing import List, Dict, Callable, Set, Type, Any
 from types import MethodType
-from star_ray.agent import Agent, Actuator
+from star_ray.agent import Agent, Actuator, _TypeRouter
 from star_ray.event import ErrorObservation
 from pyfuncschedule import parser as schedule_parser, Schedule, ScheduleParser
 from ._logging import LOGGER
@@ -74,7 +75,8 @@ class ScheduledAgentFactory:
         super().__init__()
         self._source = schedule_source
         self._actuator_types: Set[Type[Actuator]] = actuator_types
-        self._functions: Dict[str, Callable] = {fun.__name__: fun for fun in funcs}
+        self._functions: Dict[str, Callable] = {
+            fun.__name__: fun for fun in funcs}
         self._parse_result: Any = None  # TODO type hint...
         self.parse_schedule()
 
@@ -120,13 +122,20 @@ class ScheduledAgentFactory:
 
     def _iter_attempt_methods_unbound(self, actuator: Type[Actuator]):
         assert issubclass(actuator, Actuator)
-        for fun in actuator.__attemptmethods__:
+        methods = inspect.getmembers(actuator, predicate=inspect.isfunction)
+        methods = [m[1]
+                   for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
+        print("unbound", methods)
+        for fun in methods:
             yield actuator, fun
 
     def _iter_attempt_methods_bound(self, actuator: Actuator):
         assert isinstance(actuator, Actuator)
-        for fun in actuator.__attemptmethods__:
-            yield actuator, MethodType(fun, actuator)  # bind
+        methods = inspect.getmembers(actuator, predicate=inspect.ismethod)
+        methods = [m[1]
+                   for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
+        for fun in methods:
+            yield actuator, fun  # bind
 
     def _get_all_attempt_methods(self, actuators: List[Actuator | Type[Actuator]]):
         if len(actuators) == 0:

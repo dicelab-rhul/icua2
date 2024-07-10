@@ -1,5 +1,9 @@
-# this solves an issue with some linux systems...
-from matbii.guidance import GuidanceAgentBase, GuidanceAgentDemo
+from matbii.guidance import (
+    DefaultGuidanceAgent,
+    DefaultGuidanceActuator,
+    SystemMonitoringTaskAcceptabilitySensor,
+    TrackingTaskAcceptabilitySensor,
+    ResourceManagementTaskAcceptabilitySensor)
 from matbii.tasks import (
     TrackingActuator,
     SystemMonitoringActuator,
@@ -15,7 +19,6 @@ from matbii import (
     TASK_ID_SYSTEM_MONITORING,
     CONFIG_PATH,
 )
-from star_ray_pygame import Avatar as _Avatar
 from matbii.agent import Avatar
 from icua2 import MultiTaskEnvironment
 
@@ -30,8 +33,8 @@ from logging import INFO, DEBUG
 
 LOGGING_LEVELS = {"debug": DEBUG, "info": INFO}
 
+# avoid a pygame issue on linux...
 os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
-
 
 # load configuration file
 parser = argparse.ArgumentParser()
@@ -97,12 +100,10 @@ LOGGER.info(
 )
 
 avatar = Avatar(
-    sensors=[],  # relevant sensors are added by default
-    actuators=[
-        AvatarSystemMonitoringActuator(),
-        AvatarTrackingActuator(),
-        AvatarResourceManagementActuator(),
-    ],
+    [],  # relevant sensors are added by default
+    [AvatarSystemMonitoringActuator(),
+     AvatarTrackingActuator(),
+     AvatarResourceManagementActuator()],
     # eyetracker=(
     #     Avatar.get_default_eyetracker(**eyetracking_config)
     #     if eyetracking_config["enabled"]
@@ -111,9 +112,16 @@ avatar = Avatar(
     window_config=window_config,
 )
 
-# guidance_agent = GuidanceAgentDemo()
+guidance_agent = DefaultGuidanceAgent([
+    SystemMonitoringTaskAcceptabilitySensor(),
+    ResourceManagementTaskAcceptabilitySensor(),
+    TrackingTaskAcceptabilitySensor()],
+    # change this actuator for different guidance to be shown (must inherit from GuidanceActuator)
+    [DefaultGuidanceActuator(arrow_mode="mouse")]
+)
+
 env = MultiTaskEnvironment(
-    agents=[avatar],  # guidance_agent],
+    agents=[avatar, guidance_agent],
     wait=0.05,
     svg_size=config["canvas_size"],
     svg_position=config["canvas_offset"],

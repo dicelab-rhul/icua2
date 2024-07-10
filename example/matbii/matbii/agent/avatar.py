@@ -40,20 +40,36 @@ class Avatar(PygameAvatar):
         super().__init__(sensors, actuators, window_config=window_config, **kwargs)
         self._eyetracker = eyetracker
 
-    def on_window_move_event(self, event: WindowMoveEvent):
-        if self._eyetracker:
-            self._eyetracker.on_window_move_event(event)
-        return super().on_window_move_event(event)
-
-    def on_window_resize_event(self, event: WindowResizeEvent):
-        if self._eyetracker:
-            self._eyetracker.on_window_resize_event(event)
-        return super().on_window_resize_event(event)
-
     @property
     def is_eyetracking(self):
         # TODO perhaps do some additional checks? like whether events are actually being generated?
         return not self._eyetracker is None
+
+    def on_window_move_event(self, event: WindowMoveEvent):
+        if self._eyetracker:
+            self._eyetracker.on_window_move_event(event)
+
+    def on_window_resize_event(self, event: WindowResizeEvent):
+        if self._eyetracker:
+            self._eyetracker.on_window_resize_event(event)
+
+    def on_window_close_event(self, event: WindowCloseEvent):
+        pass
+
+    def on_window_focus_event(self, event: WindowFocusEvent):
+        pass
+
+    def on_window_open_event(self, event: WindowOpenEvent):
+        pass
+
+    def on_key_event(self, event: KeyEvent):
+        pass
+
+    def on_mouse_button_event(self, event: MouseButtonEvent):
+        pass
+
+    def on_mouse_motion_event(self, event: MouseMotionEvent):
+        pass
 
     def __initialise__(self, state):
         if self._eyetracker:

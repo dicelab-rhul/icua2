@@ -16,13 +16,11 @@ PATH = pathlib.Path(__file__).parent / "task"
 
 class DefaultActuator(Actuator):
 
-    @attempt(
-        route_events=(MouseButtonEvent, MouseMotionEvent, KeyEvent, WindowCloseEvent)
-    )
-    def default(self, action):
+    @attempt
+    def default(self, action: MouseButtonEvent | MouseMotionEvent | KeyEvent | WindowCloseEvent):
         return action
 
-    @attempt(route_events=(MouseButtonEvent,))
+    @attempt
     def place(self, action: MouseButtonEvent):
         actions = []
         if action.button == MouseButtonEvent.BUTTON_LEFT:
@@ -38,12 +36,13 @@ class DefaultActuator(Actuator):
                         )
         return actions
 
-    @attempt(route_events=(KeyEvent,))
+    @attempt
     def enable_task(self, event: KeyEvent):
         if event.status and event.key in ["1", "2", "3"]:
             task_name = f"task-{event.key}"
             x = 110 * (int(event.key) - 1)
-            context = dict(task_name=task_name, x=x, y=0, width=100, height=100)
+            context = dict(task_name=task_name, x=x,
+                           y=0, width=100, height=100)
             return [EnableTask(task_name=task_name, context=context)]
         return []
 
@@ -51,7 +50,8 @@ class DefaultActuator(Actuator):
 SVG = """<svg:svg id="root" xmlns:svg="http://www.w3.org/2000/svg" x="0" y="0" width="500" height="500"> </svg:svg>"""
 
 avatar = Avatar([], [DefaultActuator()])
-env = MultiTaskEnvironment(agents=[avatar], enable_dynamic_loading=True, svg=SVG)
+env = MultiTaskEnvironment(
+    agents=[avatar], enable_dynamic_loading=True, svg=SVG)
 env.register_task(name=TASK_NAME, path=PATH, enable=False)
 env.rename_task(TASK_NAME, "task-1")
 

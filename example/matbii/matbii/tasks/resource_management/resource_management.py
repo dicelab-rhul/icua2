@@ -1,14 +1,11 @@
 import re
-from typing import ClassVar, List
+from typing import ClassVar
 from pydantic import validator
 from functools import partial
-from star_ray.event import Action
-from icua2.agent import attempt, Actuator
-from star_ray_xml import update, select, XMLState, Expr, Template
+from star_ray_xml import update, select, XMLState, Template
 
-from star_ray_pygame.event import (
-    MouseButtonEvent,
-)
+from icua2.event import XMLQuery, MouseButtonEvent
+from icua2.agent import attempt, Actuator
 
 
 TANK_IDS = list("abcdef")
@@ -26,7 +23,7 @@ class AvatarResourceManagementActuator(Actuator):
             AvatarResourceManagementActuator.get_click_targets, r"pump-([a-z]+)-button"
         )
 
-    @attempt(route_events=[MouseButtonEvent])
+    @attempt
     def attempt_mouse_event(self, user_action: MouseButtonEvent):
         assert isinstance(user_action, MouseButtonEvent)
         # always include the user action as it needs to be logged
@@ -77,7 +74,7 @@ class ResourceManagementActuator(Actuator):
         return TogglePumpAction(target=target)
 
 
-class PumpAction(Action):
+class PumpAction(XMLQuery):
 
     target: str
 
@@ -138,7 +135,7 @@ class SetPumpAction(PumpAction):
     def new_failure(target: int | str):
         return SetPumpAction(target=target, state=PumpAction.FAILURE)
 
-    def execute(self, state: XMLState):
+    def __execute__(self, state: XMLState):
         return state.update(
             update(
                 xpath=f"//*[@id='pump-{self.target}-button']",
@@ -156,7 +153,7 @@ class TogglePumpAction(PumpAction):
     def new(target: int | str):
         return TogglePumpAction(target=target)
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         # check if pump is in a failure state
         pump_id = f"pump-{self.target}-button"
         # 0 -> 1, 1 -> 0, 2 -> 2 (cannot toggle if the pump is in failure)
@@ -179,7 +176,7 @@ class TogglePumpFailureAction(PumpAction):
     def new(target: int):
         return TogglePumpFailureAction(target=target)
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         pump_id = f"pump-{self.target}-button"
         # 0 -> 2, 1 -> 2, 2 -> 0
         new_state = "2 * (1 - {data-state} // 2)"
@@ -200,7 +197,7 @@ class PumpFuelAction(PumpAction):
     flow: float
     XPATH_PUMP: ClassVar[str] = "//svg:rect[@id='pump-%s-button']"
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         if self.is_pump_on(xml_state, self.target):
             id_from = self.target[0]
             id_to = self.target[1]
@@ -231,7 +228,7 @@ class PumpFuelAction(PumpAction):
         return data_state == PumpAction.ON
 
 
-class BurnFuelAction(Action):
+class BurnFuelAction(XMLQuery):
 
     target: str
     burn: float
@@ -248,7 +245,7 @@ class BurnFuelAction(Action):
             f"Invalid tank {value}, must be one of {TANK_MAIN_IDS + [ALL]}"
         )
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         targets = self.get_targets()
         for target in targets:
             values = _get_tank_data(xml_state, target)

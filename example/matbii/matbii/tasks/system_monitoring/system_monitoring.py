@@ -4,11 +4,10 @@ from typing import Any, ClassVar
 from functools import partial
 from pydantic import Field, validator
 
-from star_ray_pygame.event import (
-    MouseButtonEvent,
-)
 
-from icua2.agent import Action, agent_actuator, attempt, Actuator
+from icua2.agent import agent_actuator, attempt, Actuator
+from icua2.event import XMLQuery, MouseButtonEvent
+
 from star_ray_xml import (
     XMLState,
     Template,
@@ -16,7 +15,7 @@ from star_ray_xml import (
     select,
 )
 
-# these are constants that reflect the task svg
+# these are constants that reflect the task svg TODO move to _const?
 VALID_LIGHT_IDS = [1, 2]
 VALID_SLIDER_IDS = [1, 2, 3, 4]
 
@@ -32,7 +31,7 @@ class AvatarSystemMonitoringActuator(Actuator):
             AvatarSystemMonitoringActuator.get_click_targets, r"slider-(\d+)-button"
         )
 
-    @attempt(route_events=[MouseButtonEvent])
+    @attempt
     def attempt_mouse_event(self, user_action: MouseButtonEvent):
         assert isinstance(user_action, MouseButtonEvent)
         # always include the user action as it needs to be logged
@@ -50,7 +49,8 @@ class AvatarSystemMonitoringActuator(Actuator):
         return [ToggleLightAction(target=target) for target in targets]
 
     def _get_slider_actions(self, user_action):
-        targets = [int(x) for x in self._get_slider_targets(user_action.target)]
+        targets = [int(x)
+                   for x in self._get_slider_targets(user_action.target)]
         return [ResetSliderAction(target=target) for target in targets]
 
     @staticmethod
@@ -99,7 +99,7 @@ def ResetSliderAction(target: int) -> "SetSliderAction":
     return SetSliderAction(target=target, state=None, relative=False)
 
 
-class SetSliderAction(Action):
+class SetSliderAction(XMLQuery):
 
     target: int  # slider to target
     state: (
@@ -113,14 +113,15 @@ class SetSliderAction(Action):
     @classmethod
     def _validate_target(cls, value):
         if not value in VALID_SLIDER_IDS:
-            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+            raise ValueError(
+                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
     @staticmethod
     def acceptable_state(increments):
         return increments // 2 + 1
 
-    def execute(self, xml_state: XMLState) -> Any:
+    def __execute__(self, xml_state: XMLState) -> Any:
         # get min and max values for the number of increments
         inc_target = f"slider-{self.target}-incs"
         but_target = f"slider-{self.target}-button"
@@ -131,7 +132,8 @@ class SetSliderAction(Action):
             )
         )
         states = {x["data-state"]: x["y1"] for x in response}
-        inc_size = states[2] - states[1]  # TODO check that these are all the same?
+        # TODO check that these are all the same?
+        inc_size = states[2] - states[1]
         min_state, max_state = (min(states.keys()), max(states.keys()) - 1)
         state = self.state
         if state is None:
@@ -162,7 +164,7 @@ class SetSliderAction(Action):
         )
 
 
-class SetLightAction(Action):
+class SetLightAction(XMLQuery):
     target: int
     state: int
 
@@ -173,7 +175,8 @@ class SetLightAction(Action):
     @classmethod
     def _validate_target(cls, value):
         if not value in VALID_LIGHT_IDS:
-            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+            raise ValueError(
+                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
     @validator("state", pre=True, always=True)
@@ -196,9 +199,10 @@ class SetLightAction(Action):
         elif value == "off":
             return SetLightAction.OFF
         else:
-            raise ValueError(f"Invalid state `{value}` must be one of ['on', 'off']")
+            raise ValueError(
+                f"Invalid state `{value}` must be one of ['on', 'off']")
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         xml_state.update(
             update(
                 xpath=f"//*[@id='light-{self.target}-button']",
@@ -210,17 +214,18 @@ class SetLightAction(Action):
         )
 
 
-class ToggleLightAction(Action):
+class ToggleLightAction(XMLQuery):
     target: int
 
     @validator("target", pre=True, always=True)
     @classmethod
     def _validate_target(cls, value):
         if not value in VALID_LIGHT_IDS:
-            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+            raise ValueError(
+                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
-    def execute(self, xml_state: XMLState):
+    def __execute__(self, xml_state: XMLState):
         xml_state.update(
             update(
                 xpath=f"//*[@id='light-{self.target}-button']",
