@@ -1,16 +1,14 @@
 from typing import List, Tuple, Dict, Type, Iterator, Any
 from collections import defaultdict, deque
 from itertools import islice
-from star_ray.agent import AgentRouted, Component, Sensor, Actuator, observe, _TypeRouter
+from star_ray.agent import AgentRouted, Component, Sensor, Actuator, observe
 from star_ray.event import (
     Event,
     ErrorObservation,
     ErrorActiveObservation
 )
 
-
-from .acceptability import TaskAcceptabilitySensor, TaskAcceptibilityObservation
-
+from .acceptability import TaskAcceptibilityObservation
 from .sensor_userinput import UserInputSensor
 
 

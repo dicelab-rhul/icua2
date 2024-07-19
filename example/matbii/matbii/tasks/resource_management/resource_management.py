@@ -1,8 +1,8 @@
 import re
 from typing import ClassVar
-from pydantic import validator
+from pydantic import field_validator
 from functools import partial
-from star_ray_xml import update, select, XMLState, Template
+from star_ray_xml import update, select, XMLState, Expr
 
 from icua2.event import XMLQuery, MouseButtonEvent
 from icua2.agent import attempt, Actuator
@@ -82,12 +82,12 @@ class PumpAction(XMLQuery):
     ON: ClassVar[int] = 1
     FAILURE: ClassVar[int] = 2
 
-    @validator("target", pre=True, always=True)
+    @field_validator("target", mode="before")
     @classmethod
     def _validate_target(cls, value: str | int):
         if isinstance(value, int):
             value = PUMP_IDS[value]
-        if not value in PUMP_IDS:
+        if value not in PUMP_IDS:
             raise ValueError(
                 f"{SetPumpAction.__name__} `target` {value} must be one of {PUMP_IDS}"
             )
@@ -97,12 +97,12 @@ class PumpAction(XMLQuery):
 class SetPumpAction(PumpAction):
     state: int
 
-    @validator("state", pre=True, always=True)
+    @field_validator("state", mode="before")
     @classmethod
     def _validate_state(cls, value: str | int):
         if isinstance(value, str):
             value = SetPumpAction.coerce_pump_state(value)
-        if not value in (PumpAction.OFF, PumpAction.ON, PumpAction.FAILURE):
+        if value not in (PumpAction.OFF, PumpAction.ON, PumpAction.FAILURE):
             raise ValueError(
                 f"Invalid state `{value}` must be one of {[PumpAction.OFF, PumpAction.ON, PumpAction.FAILURE]}"
             )
@@ -141,7 +141,7 @@ class SetPumpAction(PumpAction):
                 xpath=f"//*[@id='pump-{self.target}-button']",
                 attrs={
                     "data-state": "%s" % self.state,
-                    "fill": Template("{data-colors}[{state}]", state=self.state),
+                    "fill": Expr("{data-colors}[{state}]", state=self.state),
                 },
             )
         )
@@ -162,9 +162,9 @@ class TogglePumpAction(PumpAction):
             update(
                 xpath=f"//*[@id='{pump_id}']",
                 attrs={
-                    "data-state": Template(new_state),
+                    "data-state": Expr(new_state),
                     # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
-                    "fill": Template("{data-colors}[{data-state}]"),
+                    "fill": Expr("{data-colors}[{data-state}]"),
                 },
             )
         )
@@ -184,9 +184,9 @@ class TogglePumpFailureAction(PumpAction):
             update(
                 xpath=f"//*[@id='{pump_id}']",
                 attrs={
-                    "data-state": Template(new_state),
+                    "data-state": Expr(new_state),
                     # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
-                    "fill": Template("{data-colors}[{data-state}]"),
+                    "fill": Expr("{data-colors}[{data-state}]"),
                 },
             )
         )
@@ -213,11 +213,11 @@ class PumpFuelAction(PumpAction):
             # compute flow value and new levels
             # TODO potential weird bug here if _from["data-level"] is lower than flow for an infinite tank
             flow = min(_from["data-level"], remain, self.flow)
-            new_to_level = _to["data-level"] + self.flow
+            new_to_level = _to["data-level"] + flow
             _update_tank_level(xml_state, id_to, _to, new_to_level)
-            if not id_from in TANK_INF_IDS:
+            if id_from not in TANK_INF_IDS:
                 # "from" tank is a normal tank, fuel should be removed
-                new_from_level = _from["data-level"] - self.flow
+                new_from_level = _from["data-level"] - flow
                 _update_tank_level(xml_state, id_from, _from, new_from_level)
 
     def is_pump_on(self, xml_state: XMLState, target: str):
@@ -233,7 +233,7 @@ class BurnFuelAction(XMLQuery):
     target: str
     burn: float
 
-    @validator("target", pre=True, always=True)
+    @field_validator("target", mode="before")
     @classmethod
     def _validate_target(cls, value: int | str) -> str:
         if isinstance(value, int):

@@ -1,8 +1,9 @@
+"""Task acceptability functionality. The `TaskAcceptabilitySensor` can be extended to track the state of a task when used as part of a `icua2.agent.GuidanceAgent`."""
+
 from abc import abstractmethod
 from typing import Any, List, Dict
 from copy import deepcopy
-from star_ray.agent import Sensor, attempt
-from star_ray.environment.ambient import _Ambient
+from star_ray.agent import Sensor
 from star_ray.event import Event, Observation, ErrorObservation
 from star_ray_xml import Select
 
@@ -10,12 +11,13 @@ __all__ = ("TaskAcceptibilityObservation", "TaskAcceptabilitySensor")
 
 
 class TaskAcceptibilityObservation(Observation):
-    """ Observation representing whether a given task is active and in an acceptable state.
+    """Observation representing whether a given task is active and in an acceptable state.
     The `values` attribute contains the following fields:
         - `task` (str): the name of the task
         - `is_active (bool): whether the task is currently active
         - `is_acceptable` (bool): whether the task is in an acceptable state, this is always False if `is_active` is False.
     """
+
     # TODO validate `values` - is_active, is_acceptable.
     pass
 
@@ -59,17 +61,18 @@ class TaskAcceptabilitySensor(Sensor):
             List[Select]: sense actions.
         """
 
-    def sense_element(self, element_id: str = None, xpath: str = None, attributes: List[str] = None) -> Select:
+    def sense_element(
+        self, element_id: str = None, xpath: str = None, attributes: List[str] = None
+    ) -> Select:
         # TODO maybe this could be in a parent class? e.g. an XMLSensor?
         if element_id is None and xpath is None:
-            raise ValueError(
-                "One of: `element_id` or `xpath` must be specified.")
+            raise ValueError("One of: `element_id` or `xpath` must be specified.")
         elif element_id:
             xpath = f"//*[@id='{element_id}']"
         if attributes is None:
             attributes = []
-        if 'id' not in attributes:
-            attributes.append('id')
+        if "id" not in attributes:
+            attributes.append("id")
         return Select(source=self.id, xpath=xpath, attrs=attributes)
 
     def iter_observations(self):
@@ -78,16 +81,29 @@ class TaskAcceptabilitySensor(Sensor):
         self._errors.clear()
         is_active = self.is_active(self.task_name)
         if not is_active:
-            yield TaskAcceptibilityObservation(source=self.id, values=dict(task=self.task_name, is_active=is_active, is_acceptable=False))
+            yield TaskAcceptibilityObservation(
+                source=self.id,
+                values=dict(
+                    task=self.task_name, is_active=is_active, is_acceptable=False
+                ),
+            )
         else:
-            yield TaskAcceptibilityObservation(source=self.id, values=dict(task=self.task_name, is_active=is_active, is_acceptable=self.is_acceptable()))
+            yield TaskAcceptibilityObservation(
+                source=self.id,
+                values=dict(
+                    task=self.task_name,
+                    is_active=is_active,
+                    is_acceptable=self.is_acceptable(),
+                ),
+            )
 
     def __sense__(self) -> List[Event]:
         actions = self.sense()
         # sense() must return a list of actions!
         if not isinstance(actions, (list, tuple)):
             raise TypeError(
-                f"sense() must return a `list` of events, received: {type(actions)}")
+                f"sense() must return a `list` of events, received: {type(actions)}"
+            )
         return actions
 
     def __transduce__(self, observations: List[Observation]) -> List[Observation]:
@@ -103,7 +119,7 @@ class TaskAcceptabilitySensor(Sensor):
     def on_error_observation(self, observation: ErrorObservation):
         """Handle observation errors, which may occur if for example, required task elements are missing during sense actions.
         By default these error observations will be produced by `iter_observations` delegating the error handling to the agent.
-        Override this method if you want custom behaviour for handling errors. 
+        Override this method if you want custom behaviour for handling errors.
 
         Args:
             observation (ErrorObservation): error observation.
@@ -121,7 +137,7 @@ class TaskAcceptabilitySensor(Sensor):
 
     @property
     def task_name(self) -> str:
-        """ The name of the task that this `Sensor` is tracking.
+        """The name of the task that this `Sensor` is tracking.
 
         Returns:
             _type_: _description_
@@ -136,7 +152,6 @@ class TaskAcceptabilitySensor(Sensor):
                 try:
                     self._beliefs[data.pop("id")] = deepcopy(data)
                 except KeyError:
-                    # pylint: disable=W0707
                     raise KeyError(
                         f"Observation: {observation} doesn't contain the required `id` attribute."
                     )

@@ -1,11 +1,12 @@
 from typing import Dict, ClassVar, Tuple
 from pydantic import field_validator
 import lxml.etree as etree
+import math
+
 from star_ray.event import Action
 from star_ray_xml import XMLState, XPathQuery, insert, update, select
-from icua2.utils import DEFAULT_XML_NAMESPACES
 from star_ray_pygame.cairosurface import parse_transform
-import math
+from star_ray_pygame.ambient import DEFAULT_SVG_NAMESPACES
 
 __all__ = (
     "ShowGuidance",
@@ -21,6 +22,7 @@ __all__ = (
 
 class ShowGuidance(Action):
     """This action should be triggered when guidance starts being shown by an agent."""
+
     task: str
 
     def __execute__(self, state: XMLState):
@@ -29,6 +31,7 @@ class ShowGuidance(Action):
 
 class HideGuidance(Action):
     """This action should be taken when guidance stops being shown by an agent."""
+
     task: str
 
     def __execute__(self, state: XMLState):
@@ -76,7 +79,7 @@ class DrawElementAction(XPathAction):
     @classmethod
     def _validate_required_data(cls, data):
         if not all(x in data for x in cls.REQUIRED_DATA):
-            missing = [x for x in cls.REQUIRED_DATA if not x in data]
+            missing = [x for x in cls.REQUIRED_DATA if x not in data]
             raise ValueError(
                 f"{DrawBoxAction.__name__} is missing attributes: {missing}"
             )
@@ -139,34 +142,31 @@ class DrawArrowAction(DrawElementAction):
             if k in data
         }
         if "scale" in data:
-            transform = DrawArrowAction.new_scale(data['scale'])
+            transform = DrawArrowAction.new_scale(data["scale"])
             state.update(update(xpath=xpath, attrs={"transform": "transform"}))
 
         # update x and y, using x and y as the center coordinates
         if "x" in data or "y" in data:
-            x, y = data.get('x', None), data.get('y', None)
+            x, y = data.get("x", None), data.get("y", None)
             size, _ = DrawArrowAction.get_size_scale(state, xpath)
             attrs = {k: data[k] for k in ("opacity",) if k in data}
-            if not x is None:
-                attrs['x'] = str(float(x) - size[0] / 2)
-            if not y is None:
-                attrs['y'] = str(float(y) - size[1] / 2)
+            if x is not None:
+                attrs["x"] = str(float(x) - size[0] / 2)
+            if y is not None:
+                attrs["y"] = str(float(y) - size[1] / 2)
             state.update(update(xpath=xpath, attrs=attrs))
 
         if "rotation" in data:
-            pol_data['transform'] = DrawArrowAction.new_rotation(
-                data['rotation'])
+            pol_data["transform"] = DrawArrowAction.new_rotation(data["rotation"])
         pol_xpath = xpath + "/svg:polygon"
         state.update(update(xpath=pol_xpath, attrs=pol_data))
 
         # check if we need to update the arrow to point to a target
         point_to = data.get("point_to", None)
         if point_to:
-            rotation = DrawArrowAction.rotation_from_point_to(
-                state, point_to, xpath)
+            rotation = DrawArrowAction.rotation_from_point_to(state, point_to, xpath)
             transform = DrawArrowAction.new_rotation(rotation)
-            state.update(update(xpath=pol_xpath, attrs={
-                         "transform": transform}))
+            state.update(update(xpath=pol_xpath, attrs={"transform": transform}))
 
     @classmethod
     def _draw(cls, state: XMLState, data: Dict[str, str], xpath: str):
@@ -185,25 +185,25 @@ class DrawArrowAction(DrawElementAction):
     @staticmethod
     def get_size_scale(state: XMLState, xpath: str):
         result = state.select(
-            select(xpath, attrs=['x', 'y', 'width', 'height', 'transform']))
+            select(xpath, attrs=["x", "y", "width", "height", "transform"])
+        )
         if not result:
             raise ValueError(f"Element at xpath: {xpath} doesn't exist")
         values = result[0]
-        scale, _, _ = parse_transform(values['transform'])
-        return (values['width'] * scale[0],
-                values['height'] * scale[1]), scale
+        scale, _, _ = parse_transform(values["transform"])
+        return (values["width"] * scale[0], values["height"] * scale[1]), scale
 
     @staticmethod
     def get_element_center(state: XMLState, xpath: str):
         result = state.select(
-            select(xpath, attrs=['x', 'y', 'width', 'height', 'transform']))
+            select(xpath, attrs=["x", "y", "width", "height", "transform"])
+        )
         if not result:
             raise ValueError(f"Element at xpath: {xpath} doesn't exist")
         values = result[0]
-        x, y = (values['x'], values['y'])
-        scale, _, _ = parse_transform(values['transform'])
-        width, height = (values['width'] * scale[0],
-                         values['height'] * scale[1])
+        x, y = (values["x"], values["y"])
+        scale, _, _ = parse_transform(values["transform"])
+        width, height = (values["width"] * scale[0], values["height"] * scale[1])
         return x + width / 2, y + height / 2
 
     @staticmethod
@@ -212,9 +212,10 @@ class DrawArrowAction(DrawElementAction):
         (x1, y1) = DrawArrowAction.get_element_center(state, xpath)
         # get the center of the element with id `element_id`
         (x2, y2) = DrawArrowAction.get_element_center(
-            state, f".//*[@id='{element_id}']")
+            state, f".//*[@id='{element_id}']"
+        )
         # compute angle between points
-        return math.degrees(math.atan2(y2-y1, x2-x1))
+        return math.degrees(math.atan2(y2 - y1, x2 - x1))
 
 
 class ShowElementAction(XPathAction):
@@ -256,8 +257,7 @@ class DrawBoxAction(XPathAction):
     @classmethod
     def _validate_required_box_data(cls, data: Dict[str, str]):
         if not all(x in data for x in ("x", "y", "width", "height")):
-            missing = [x for x in (
-                "x", "y", "width", "height") if not x in data]
+            missing = [x for x in ("x", "y", "width", "height") if x not in data]
             raise ValueError(
                 f"{DrawBoxAction.__name__} is missing attributes: {missing}"
             )
@@ -270,9 +270,9 @@ class DrawBoxAction(XPathAction):
         box_data.setdefault("fill", "none")
         print(box_data)
         box = etree.Element(
-            "{%s}rect" % DEFAULT_XML_NAMESPACES["svg"],
+            "{%s}rect" % DEFAULT_SVG_NAMESPACES["svg"],
             attrib=box_data,
-            nsmap=DEFAULT_XML_NAMESPACES,
+            nsmap=DEFAULT_SVG_NAMESPACES,
         )
         box = etree.tostring(box)
         return state.insert(insert(xpath=xpath, element=box, index=0))
@@ -281,8 +281,7 @@ class DrawBoxAction(XPathAction):
     def _draw_box(state: XMLState, box_data: Dict[str, str], xpath: str):
         box_id = box_data.get("id", None)
         if box_id is None:
-            raise ValueError(
-                "Attempted to draw a box without an `id` attribute.")
+            raise ValueError("Attempted to draw a box without an `id` attribute.")
         # check if the box already exists
         uxpath = xpath + f"/svg:rect[@id='{box_id}']"
         result = state.select(select(xpath=uxpath, attrs=["id"]))

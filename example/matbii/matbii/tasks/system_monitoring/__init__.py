@@ -3,6 +3,7 @@ from .system_monitoring import (
     AvatarSystemMonitoringActuator,
     SetSliderAction,
     SetLightAction,
+    ToggleLightAction,
     ToggleSliderAction,
     ResetSliderAction,
 )
@@ -11,8 +12,9 @@ from .system_monitoring import (
 __all__ = (
     "SystemMonitoringActuator",
     "AvatarSystemMonitoringActuator",
-    "SetSliderAction",
     "SetLightAction",
+    "ToggleLightAction",
+    "SetSliderAction",
     "ToggleSliderAction",
     "ResetSliderAction",
 )

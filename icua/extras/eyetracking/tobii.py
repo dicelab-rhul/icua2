@@ -1,4 +1,4 @@
-""" Bridge between the Tobii (pro) eyetracking API and the `icua2` eyetracking API. """
+"""Bridge between the Tobii (pro) eyetracking API and the `icua2` eyetracking API."""
 
 from typing import List, Dict, Any, Callable
 import time
@@ -81,7 +81,6 @@ class TobiiEyetracker(EyetrackerBase):
         self._event_loop = None
 
         if uri is None:
-            # pylint: disable = E1101
             eyetrackers = _tr.find_all_eyetrackers()
             if eyetrackers:
                 self._eyetracker = eyetrackers[0]
@@ -91,7 +90,7 @@ class TobiiEyetracker(EyetrackerBase):
                 )
         else:
             try:
-                self._eyetracker = _tr.EyeTracker(self._uri)  # pylint: disable=E1101
+                self._eyetracker = _tr.EyeTracker(self._uri)
             except Exception as exception:
                 raise EyetrackingConfigurationError(
                     f"Failed to initialise eyetracker at uri: {self._uri}, see cause above. Also check that the eyetracker is connected and avaliable in the official Tobii Pro Eye Tracker Manager software. "
@@ -102,7 +101,6 @@ class TobiiEyetracker(EyetrackerBase):
             # NOTE: it is important that this is called in async context
             self._event_loop = asyncio.get_event_loop()
             # so we can track the actual times (this will introduce a small error...)
-            # pylint: disable = E1101
             self._t0 = (_tr.get_system_time_stamp(), time.time())
             self._eyetracker.subscribe_to(
                 _tr.EYETRACKER_GAZE_DATA,
@@ -122,7 +120,6 @@ class TobiiEyetracker(EyetrackerBase):
         )
 
     def stop(self):
-        # pylint: disable = E1101
         self._eyetracker.unsubscribe_from(
             _tr.EYETRACKER_GAZE_DATA, self._internal_callback
         )

@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from star_ray.pubsub import Subscriber
 from star_ray.utils._logging import LOGGER, Indent
+import json
 
 
 class DateTimeFormatter(logging.Formatter):
@@ -30,7 +31,7 @@ class EventLogger(Subscriber):
         self.logger.addHandler(file_handler)
 
     def log(self, event: BaseModel):
-        self.logger.info("%s %s", type(event).__name__, event.model_dump())
+        self.logger.info("%s %s", type(event).__name__, event.model_dump_json())
 
     def __notify__(self, message: BaseModel):
         self.log(message)

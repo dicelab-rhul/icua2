@@ -3,10 +3,9 @@ import aiostream
 import asyncio
 import itertools
 import inspect
-from typing import List, Dict, Callable, Set, Type, Any
-from types import MethodType
-from star_ray.agent import Agent, Actuator, _TypeRouter
-from star_ray.event import ErrorObservation
+from typing import List, Dict, Callable, Type, Any
+from star_ray import Agent, Actuator, TypeRouter
+from star_ray import ErrorObservation
 from pyfuncschedule import parser as schedule_parser, Schedule, ScheduleParser
 from ._logging import LOGGER
 from ._error import TaskConfigurationError
@@ -49,7 +48,7 @@ class ScheduledAgent(Agent):
             await self._iter_context.__aexit__(None, None, None)
             self._completed = True
             LOGGER.debug("%s was cancelled.", self)
-        except Exception as e:  # pylint: disable=W0718
+        except Exception as e:
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)
             raise e
@@ -65,18 +64,16 @@ class ScheduledAgent(Agent):
 
 
 class ScheduledAgentFactory:
-
     def __init__(
         self,
         schedule_source: str,
-        actuator_types: Set[Type[Actuator]],
+        actuator_types: List[Type[Actuator]],
         funcs: List[Callable],
     ):
         super().__init__()
         self._source = schedule_source
-        self._actuator_types: Set[Type[Actuator]] = actuator_types
-        self._functions: Dict[str, Callable] = {
-            fun.__name__: fun for fun in funcs}
+        self._actuator_types = list(set(actuator_types))
+        self._functions: Dict[str, Callable] = {fun.__name__: fun for fun in funcs}
         self._parse_result: Any = None  # TODO type hint...
         self.parse_schedule()
 
@@ -123,17 +120,14 @@ class ScheduledAgentFactory:
     def _iter_attempt_methods_unbound(self, actuator: Type[Actuator]):
         assert issubclass(actuator, Actuator)
         methods = inspect.getmembers(actuator, predicate=inspect.isfunction)
-        methods = [m[1]
-                   for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
-        print("unbound", methods)
+        methods = [m[1] for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
         for fun in methods:
             yield actuator, fun
 
     def _iter_attempt_methods_bound(self, actuator: Actuator):
         assert isinstance(actuator, Actuator)
         methods = inspect.getmembers(actuator, predicate=inspect.ismethod)
-        methods = [m[1]
-                   for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
+        methods = [m[1] for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
         for fun in methods:
             yield actuator, fun  # bind
 

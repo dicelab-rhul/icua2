@@ -2,7 +2,7 @@ import random
 import re
 from typing import Any, ClassVar
 from functools import partial
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 
 from icua2.agent import agent_actuator, attempt, Actuator
@@ -10,7 +10,7 @@ from icua2.event import XMLQuery, MouseButtonEvent
 
 from star_ray_xml import (
     XMLState,
-    Template,
+    Expr,
     update,
     select,
 )
@@ -49,8 +49,7 @@ class AvatarSystemMonitoringActuator(Actuator):
         return [ToggleLightAction(target=target) for target in targets]
 
     def _get_slider_actions(self, user_action):
-        targets = [int(x)
-                   for x in self._get_slider_targets(user_action.target)]
+        targets = [int(x) for x in self._get_slider_targets(user_action.target)]
         return [ResetSliderAction(target=target) for target in targets]
 
     @staticmethod
@@ -109,12 +108,11 @@ class SetSliderAction(XMLQuery):
         default_factory=lambda: False
     )  # is `state` relative to the current state?
 
-    @validator("target", pre=True, always=True)
+    @field_validator("target", mode="before")
     @classmethod
     def _validate_target(cls, value):
-        if not value in VALID_SLIDER_IDS:
-            raise ValueError(
-                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+        if value not in VALID_SLIDER_IDS:
+            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
     @staticmethod
@@ -171,20 +169,19 @@ class SetLightAction(XMLQuery):
     OFF: ClassVar[int] = 0
     ON: ClassVar[int] = 1
 
-    @validator("target", pre=True, always=True)
+    @field_validator("target", mode="before")
     @classmethod
     def _validate_target(cls, value):
-        if not value in VALID_LIGHT_IDS:
-            raise ValueError(
-                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+        if value not in VALID_LIGHT_IDS:
+            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
-    @validator("state", pre=True, always=True)
+    @field_validator("state", mode="before")
     @classmethod
     def _validate_state(cls, value: int | str):
         if isinstance(value, str):
             value = SetLightAction.coerce_light_state(value)
-        if not value in (SetLightAction.OFF, SetLightAction.ON):
+        if value not in (SetLightAction.OFF, SetLightAction.ON):
             raise ValueError(
                 f"Invalid state `{value}` must be one of {[SetLightAction.OFF, SetLightAction.ON]}"
             )
@@ -199,8 +196,7 @@ class SetLightAction(XMLQuery):
         elif value == "off":
             return SetLightAction.OFF
         else:
-            raise ValueError(
-                f"Invalid state `{value}` must be one of ['on', 'off']")
+            raise ValueError(f"Invalid state `{value}` must be one of ['on', 'off']")
 
     def __execute__(self, xml_state: XMLState):
         xml_state.update(
@@ -208,7 +204,7 @@ class SetLightAction(XMLQuery):
                 xpath=f"//*[@id='light-{self.target}-button']",
                 attrs={
                     "data-state": "%s" % self.state,
-                    "fill": Template("{data-colors}[{state}]", state=self.state),
+                    "fill": Expr("{data-colors}[{state}]", state=self.state),
                 },
             )
         )
@@ -217,12 +213,11 @@ class SetLightAction(XMLQuery):
 class ToggleLightAction(XMLQuery):
     target: int
 
-    @validator("target", pre=True, always=True)
+    @field_validator("target", mode="before")
     @classmethod
     def _validate_target(cls, value):
-        if not value in VALID_LIGHT_IDS:
-            raise ValueError(
-                f"`target` {value} must be one of {VALID_LIGHT_IDS}")
+        if value not in VALID_LIGHT_IDS:
+            raise ValueError(f"`target` {value} must be one of {VALID_LIGHT_IDS}")
         return value
 
     def __execute__(self, xml_state: XMLState):
@@ -230,9 +225,9 @@ class ToggleLightAction(XMLQuery):
             update(
                 xpath=f"//*[@id='light-{self.target}-button']",
                 attrs={
-                    "data-state": Template("1-{data-state}"),
+                    "data-state": Expr("1-{data-state}"),
                     # GOTCHA! data-state will be updated first (from above) and used to update fill! the order matters here.
-                    "fill": Template("{data-colors}[{data-state}]"),
+                    "fill": Expr("{data-colors}[{data-state}]"),
                 },
             )
         )

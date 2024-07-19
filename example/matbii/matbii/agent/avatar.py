@@ -1,17 +1,12 @@
 from typing import List
-
-from star_ray import Sensor, Actuator
+from functools import partial
+from star_ray.agent import Sensor, Actuator, observe, decide
 
 from star_ray_pygame.avatar import Avatar as PygameAvatar
 from star_ray_pygame import WindowConfiguration
-from star_ray_pygame.event import (
-    MouseButtonEvent,
-    MouseMotionEvent,
-    KeyEvent,
-    WindowCloseEvent,
-    WindowFocusEvent,
+from icua2.event import (
+    RenderEvent,
     WindowMoveEvent,
-    WindowOpenEvent,
     WindowResizeEvent,
 )
 
@@ -22,11 +17,10 @@ from icua2.extras.eyetracking import (
     NWMAFilter,
     IVTFilter,
 )
-from .avatar_actuator import DefaultActuator
+from icua2.agent import AvatarActuator
 
 
 class Avatar(PygameAvatar):
-
     def __init__(
         self,
         sensors: List[Sensor],
@@ -36,40 +30,35 @@ class Avatar(PygameAvatar):
         **kwargs,
     ):
         # see `DefaultActuator` documentation
-        actuators.append(DefaultActuator())
+        actuators.append(AvatarActuator())
         super().__init__(sensors, actuators, window_config=window_config, **kwargs)
         self._eyetracker = eyetracker
+        if self._eyetracker:
+            # if we are using an eyetracker, we want to get events from it!
+            self.add_decide_method(self._eyetracker.get_nowait)
+
+    def render(self):
+        # this is for logging purposes, we can see when the rendering beings.
+        # if all agents are running locally (i.e. synchronously), then we can assume that
+        # all preceeding events in the event log will be visible to the user! this is very useful
+        # for post-analysis in experiments.
+        self.attempt(RenderEvent())
+        super().render()
 
     @property
     def is_eyetracking(self):
         # TODO perhaps do some additional checks? like whether events are actually being generated?
-        return not self._eyetracker is None
+        return self._eyetracker is not None
 
+    @observe
     def on_window_move_event(self, event: WindowMoveEvent):
         if self._eyetracker:
             self._eyetracker.on_window_move_event(event)
 
+    @observe
     def on_window_resize_event(self, event: WindowResizeEvent):
         if self._eyetracker:
             self._eyetracker.on_window_resize_event(event)
-
-    def on_window_close_event(self, event: WindowCloseEvent):
-        pass
-
-    def on_window_focus_event(self, event: WindowFocusEvent):
-        pass
-
-    def on_window_open_event(self, event: WindowOpenEvent):
-        pass
-
-    def on_key_event(self, event: KeyEvent):
-        pass
-
-    def on_mouse_button_event(self, event: MouseButtonEvent):
-        pass
-
-    def on_mouse_motion_event(self, event: MouseMotionEvent):
-        pass
 
     def __initialise__(self, state):
         if self._eyetracker:
@@ -79,12 +68,6 @@ class Avatar(PygameAvatar):
             self._eyetracker.window_position = window_info["position"]
             self._eyetracker.start()
         return super().__initialise__(state)
-
-    def __cycle__(self):
-        if self._eyetracker:
-            events = self._eyetracker.get_nowait()
-            self.__attempt__(events)
-        super().__cycle__()
 
     def __terminate__(self):
         if self._eyetracker:
@@ -121,7 +104,6 @@ class Avatar(PygameAvatar):
         # this filter will be set up fully (screen/window position/size) when the eyetracker is started!
         wsf = WindowSpaceFilter(nan, nan, nan)
         # TODO try some other eyetrackers providers? when they are implemented in icua2
-        # pylint: disable=C0415
         from icua2.extras.eyetracking.tobii import (
             TobiiEyetracker,
             TOBII_RESEACH_SDK_AVALIABLE,

@@ -7,8 +7,8 @@ class MoveActuator(Actuator):
 
     @attempt
     def move(self, direction):
-        x = Expr("{value} + {direction}", direction=direction[0])
-        y = Expr("{value} + {direction}", direction=direction[1])
+        x = Expr("{cx} + {direction}", direction=direction[0])
+        y = Expr("{cy} + {direction}", direction=direction[1])
         return update(
             xpath="//svg:svg/svg:circle",
             attrs=dict(cx=x, cy=y),

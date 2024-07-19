@@ -11,8 +11,8 @@ DEFAULT_SVG_INDEX_FILE = DEFAULT_STATIC_PATH / "index.svg.jinja"
 DEFAULT_SERVER_CONFIG_FILE = DEFAULT_CONFIG_PATH / "default_server_config.json"
 DEFAULT_SCHEDULE_FILE = DEFAULT_SCHEDULE_PATH / "default_schedule.sch"
 
-DEFAULT_XML_NAMESPACES = {"svg": "http://www.w3.org/2000/svg"}
-DEFAULT_SVG_PLACEHOLDER = """<svg:svg id="root" x="0" y="0" width="1" height="1" xmlns:svg="http://www.w3.org/2000/svg" version="1.1"></svg:svg>"""
+DEFAULT_SVG_NAMESPACES = {"svg": "http://www.w3.org/2000/svg"}
+DEFAULT_SVG = """<svg:svg id="root" x="0" y="0" xmlns:svg="http://www.w3.org/2000/svg"></svg:svg>"""
 
 # TODO this should be set in config file somewhere
 DEFAULT_KEY_BINDING = {
@@ -30,6 +30,6 @@ __all__ = (
     "DEFAULT_SVG_INDEX_FILE",
     "DEFAULT_SERVER_CONFIG_FILE",
     "DEFAULT_SCHEDULE_FILE",
-    "DEFAULT_XML_NAMESPACES",
+    "DEFAULT_SVG_NAMESPACES",
     "DEFAULT_KEY_BINDING",
 )

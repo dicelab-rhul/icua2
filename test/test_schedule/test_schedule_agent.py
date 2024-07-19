@@ -17,7 +17,6 @@ start_time = time.time()
 
 
 class TestActuator(Actuator):
-
     @attempt
     def test1(self):
         print(f"test1@{time.time() - start_time}")
@@ -35,7 +34,6 @@ class TestActuator(Actuator):
 
 
 class ScheduleAgent(Agent):
-
     def __init__(self, actuators: List[Actuator], schedules: List[Schedule]):
         super().__init__([], actuators)
         self._schedules = [sch.stream() for sch in schedules]
@@ -52,7 +50,7 @@ class ScheduleAgent(Agent):
             await self._iter_schedules.__anext__()
         except StopAsyncIteration:
             await self._iter_context.__aexit__(None, None, None)
-        except Exception:  # pylint: disable=W0718
+        except Exception:
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)
 

@@ -1,17 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import List, Tuple, Literal
 from star_ray.agent import Actuator, attempt
-from icua2.event import MouseMotionEvent, EyeMotionEvent, WindowResizeEvent, Update
-from .action_guidance import (
+from icua2.event import MouseMotionEvent, EyeMotionEvent
+
+from ..event.event_guidance import (
     DrawArrowAction,
     DrawBoxOnElementAction,
     ShowElementAction,
     HideElementAction,
     ShowGuidance,
-    HideGuidance
+    HideGuidance,
 )
-import math
-import time
 
 
 class GuidanceActuator(ABC, Actuator):
@@ -34,18 +33,21 @@ class GuidanceActuator(ABC, Actuator):
 
 class DefaultGuidanceActuator(GuidanceActuator):
 
-    ARROW_MODES = ("gaze", "mouse", "fixed", "none")
+    ARROW_MODES = Literal["gaze", "mouse", "fixed", "none"]
 
-    def __init__(self, *args, arrow_mode: str = "gaze",
-                 arrow_scale: float = 1.0,
-                 arrow_fill_color: str = "none",
-                 arrow_stroke_color: str = "#ff0000",
-                 arrow_stroke_width: float = 4.0,
-                 arrow_offset: Tuple[float, float] = (80, 80),
-                 box_stroke_color: str = "#ff0000",
-                 box_stroke_width: float = 4.0,
-
-                 **kwargs):
+    def __init__(
+        self,
+        *args,
+        arrow_mode: str = ARROW_MODES,
+        arrow_scale: float = 1.0,
+        arrow_fill_color: str = "none",
+        arrow_stroke_color: str = "#ff0000",
+        arrow_stroke_width: float = 4.0,
+        arrow_offset: Tuple[float, float] = (80, 80),
+        box_stroke_color: str = "#ff0000",
+        box_stroke_width: float = 4.0,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._arrow_mode = arrow_mode
         self._arrow_scale = arrow_scale
@@ -56,9 +58,10 @@ class DefaultGuidanceActuator(GuidanceActuator):
         self._box_stroke_color = box_stroke_color
         self._box_stroke_width = box_stroke_width
 
-        if not self._arrow_mode in DefaultGuidanceActuator.ARROW_MODES:
+        if self._arrow_mode not in DefaultGuidanceActuator.ARROW_MODES.__args__:
             raise ValueError(
-                f"Invalid argument: `arrow_mode` must be one of {DefaultGuidanceActuator.ARROW_MODES}")
+                f"Invalid argument: `arrow_mode` must be one of {DefaultGuidanceActuator.ARROW_MODES}"
+            )
         self._guidance_arrow_id = "guidance_arrow"
         self._guidance_box_id_template = "guidance_box_%s"
         self._guidance_on = None
@@ -72,18 +75,22 @@ class DefaultGuidanceActuator(GuidanceActuator):
             return []
         elif self._arrow_mode == "gaze":
             if self._gaze_position:  # TODO check that this doesnt continuously hold...?
-                attrs = dict(id=self._guidance_arrow_id,
-                             x=self._gaze_position[0] + self._arrow_offset[0],
-                             y=self._gaze_position[1] + self._arrow_offset[0],
-                             point_to=self._guidance_on)
+                attrs = dict(
+                    id=self._guidance_arrow_id,
+                    x=self._gaze_position[0] + self._arrow_offset[0],
+                    y=self._gaze_position[1] + self._arrow_offset[0],
+                    point_to=self._guidance_on,
+                )
                 return [DrawArrowAction(xpath="/svg:svg", data=attrs)]
             return []
         elif self._arrow_mode == "mouse":
             if self._mouse_position:
-                attrs = dict(id=self._guidance_arrow_id,
-                             x=self._mouse_position[0] + self._arrow_offset[0],
-                             y=self._mouse_position[1] + self._arrow_offset[0],
-                             point_to=self._guidance_on)
+                attrs = dict(
+                    id=self._guidance_arrow_id,
+                    x=self._mouse_position[0] + self._arrow_offset[0],
+                    y=self._mouse_position[1] + self._arrow_offset[0],
+                    point_to=self._guidance_on,
+                )
                 return [DrawArrowAction(xpath="/svg:svg", data=attrs)]
             return []
         elif self._arrow_mode == "fixed":
@@ -91,7 +98,8 @@ class DefaultGuidanceActuator(GuidanceActuator):
             raise NotImplementedError("TODO")
         else:
             raise ValueError(
-                f"Invalid argument: `arrow_mode` must be one of {DefaultGuidanceActuator.ARROW_MODES}")
+                f"Invalid argument: `arrow_mode` must be one of {DefaultGuidanceActuator.ARROW_MODES}"
+            )
 
     @property
     def is_arrow_mode_none(self) -> bool:
@@ -109,15 +117,20 @@ class DefaultGuidanceActuator(GuidanceActuator):
         assert tasks is not None  # requires argument `tasks`
         if not self.is_arrow_mode_none:
             self.draw_guidance_arrow(
-                self._guidance_arrow_id, 0.0, 0.0,
+                self._guidance_arrow_id,
+                0.0,
+                0.0,
                 fill=self._arrow_fill_color,
                 stroke_width=self._arrow_stroke_width,
                 stroke_color=self._arrow_stroke_color,
                 opacity=0.0,
-                scale=self._arrow_scale)
+                scale=self._arrow_scale,
+            )
         for task in tasks:
-            box_data = {"stroke-width": self._box_stroke_width,
-                        "stroke": self._box_stroke_color}
+            box_data = {
+                "stroke-width": self._box_stroke_width,
+                "stroke": self._box_stroke_color,
+            }
             self.draw_guidance_box_on_element(task, opacity=0.0, **box_data)
 
     @attempt()
@@ -132,11 +145,12 @@ class DefaultGuidanceActuator(GuidanceActuator):
         opacity: float = 0.0,
         stroke_color: str = "#ff0000",
         stroke_width: float = 2.0,
-        ** kwargs,
+        **kwargs,
     ) -> DrawArrowAction:
         if self.is_arrow_mode_none:
             raise ValueError(
-                "Attempting to draw guidance arrow when `arrow_mode` == 'none'")
+                "Attempting to draw guidance arrow when `arrow_mode` == 'none'"
+            )
         return DrawArrowAction(
             xpath="/svg:svg",
             data=dict(
@@ -154,8 +168,10 @@ class DefaultGuidanceActuator(GuidanceActuator):
         )
 
     @attempt()
-    def draw_guidance_box_on_element(self, task: str, **kwargs) -> DrawBoxOnElementAction:
-        kwargs['id'] = self._guidance_box_id_template % task
+    def draw_guidance_box_on_element(
+        self, task: str, **kwargs
+    ) -> DrawBoxOnElementAction:
+        kwargs["id"] = self._guidance_box_id_template % task
         return DrawBoxOnElementAction(xpath=f"//*[@id='{task}']", box_data=kwargs)
 
     @attempt()
@@ -163,11 +179,14 @@ class DefaultGuidanceActuator(GuidanceActuator):
         assert task  # requires argument `task`
         self._guidance_on = task
         guidance_box_id = self._guidance_box_id_template % task
-        actions = [ShowGuidance(task=task),
-                   ShowElementAction(xpath=f"//*[@id='{guidance_box_id}']")]
+        actions = [
+            ShowGuidance(task=task),
+            ShowElementAction(xpath=f"//*[@id='{guidance_box_id}']"),
+        ]
         if not self.is_arrow_mode_none:
-            actions.append(ShowElementAction(
-                xpath=f"//*[@id='{self._guidance_arrow_id}']"))
+            actions.append(
+                ShowElementAction(xpath=f"//*[@id='{self._guidance_arrow_id}']")
+            )
         return actions
 
     @attempt()
@@ -175,11 +194,14 @@ class DefaultGuidanceActuator(GuidanceActuator):
         assert task  # requires argument `task`
         self._guidance_on = None
         guidance_box_id = self._guidance_box_id_template % task
-        actions = [HideGuidance(task=task),
-                   HideElementAction(xpath=f"//*[@id='{guidance_box_id}']")]
+        actions = [
+            HideGuidance(task=task),
+            HideElementAction(xpath=f"//*[@id='{guidance_box_id}']"),
+        ]
         if not self.is_arrow_mode_none:
-            actions.append(HideElementAction(
-                xpath=f"//*[@id='{self._guidance_arrow_id}']"))
+            actions.append(
+                HideElementAction(xpath=f"//*[@id='{self._guidance_arrow_id}']")
+            )
         return actions
 
 

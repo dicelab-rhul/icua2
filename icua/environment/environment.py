@@ -3,7 +3,7 @@ import asyncio
 
 from icua2.utils._schedule import ScheduledAgent
 from star_ray import Environment, Agent, Actuator
-from .ambient import MultiTaskAmbient
+from .ambient_multitask import MultiTaskAmbient
 from ..utils import LOGGER
 
 
@@ -11,46 +11,48 @@ class MultiTaskEnvironment(Environment):
 
     def __init__(
         self,
+        avatar: Agent = None,
         agents: List[Agent] = None,
-        svg: str = None,
-        namespaces: Dict[str, str] = None,
-        enable_dynamic_loading: bool = False,
         wait: float = 0.05,
         svg_size: Tuple[float, float] = None,
         svg_position: Tuple[float, float] = None,
         logging_path: str = None,
+        **kwargs,
     ):
         ambient = MultiTaskAmbient(
+            avatar=avatar,
             agents=agents,
-            svg=svg,
-            namespaces=namespaces,
-            enable_dynamic_loading=enable_dynamic_loading,
+            logging_path=logging_path,
             svg_size=svg_size,
             svg_position=svg_position,
-            logging_path=logging_path,
+            **kwargs,
         )
         super().__init__(
             ambient=ambient,
             wait=wait,
             sync=True,
         )
-        self._agent_scheduler = None
+        # self._agent_scheduler = None
+
+    @property
+    def ambient(self) -> MultiTaskAmbient:
+        ambient = self._ambient._inner
+        # TODO remote ambient currently not supported - this would be easy to do... (just need relevant methods exposed)
+        assert isinstance(ambient, MultiTaskAmbient)
+        return ambient
 
     def enable_task(
         self, task_name: str, context: Dict[str, Any] = None, insert_at: int = -1
     ):
-        # TODO what if this is remote!
-        self._ambient._inner.enable_task(
-            task_name, context=context, insert_at=insert_at
-        )
+        self.ambient.enable_task(task_name, context=context, insert_at=insert_at)
 
     def disable_task(self, task_name: str):
-        self._ambient._inner.disable_task(task_name)
+        self.ambient.disable_task(task_name)
 
     def rename_task(self, task_name: str, new_name: str):
-        self._ambient._inner.rename_task(task_name, new_name)
+        self.ambient.rename_task(task_name, new_name)
 
-    def register_task(
+    def add_task(
         self,
         name: str,
         path: str,
@@ -58,7 +60,7 @@ class MultiTaskEnvironment(Environment):
         avatar_actuators: List[Callable[[], Actuator]] = None,
         enable: bool = False,
     ):
-        self._ambient._inner.register_task(
+        self.ambient.add_task(
             name,
             path,
             agent_actuators=agent_actuators,
@@ -78,7 +80,8 @@ class MultiTaskEnvironment(Environment):
                     pass  # print(f"Pending task {pending_task} was cancelled")
                 except asyncio.TimeoutError:
                     LOGGER.warning(
-                        f"Pending task {pending_task} did not finish within timeout")
+                        f"Pending task {pending_task} did not finish within timeout"
+                    )
                     pass
 
         async def _run():
@@ -110,8 +113,7 @@ class MultiTaskEnvironment(Environment):
         for agent in self._ambient.get_agents():
             if isinstance(agent.get_inner(), ScheduledAgent):
                 # schedule agents are fully async, they will wait to execute according to their schedule.
-                tasks.append(asyncio.create_task(
-                    self.run_agent_no_wait(agent)))
+                tasks.append(asyncio.create_task(self.run_agent_no_wait(agent)))
             else:
                 tasks.append(asyncio.create_task(self.run_agent(agent)))
         return tasks

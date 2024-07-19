@@ -6,7 +6,7 @@
     ],
     "experiment_info": {
         "id": "experiment-C",
-        "path": "./",
+        "path": "C:/Users/brjw/Documents/repos/icua2/example/matbii/example/experiment-C",
         "duration": 30,
         "meta": {
             "description": "<description of experiment>"
@@ -18,7 +18,7 @@
     "eyetracking_enabled": false,
     "eyetracking_calibration_check": false,
     "logging_level": "debug",
-    "logging_path": "./mylogs/",
+    "logging_path": "./logs/",
     "canvas_size": [
         800,
         800

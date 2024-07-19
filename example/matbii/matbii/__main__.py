@@ -3,7 +3,8 @@ from matbii.guidance import (
     DefaultGuidanceActuator,
     SystemMonitoringTaskAcceptabilitySensor,
     TrackingTaskAcceptabilitySensor,
-    ResourceManagementTaskAcceptabilitySensor)
+    ResourceManagementTaskAcceptabilitySensor,
+)
 from matbii.tasks import (
     TrackingActuator,
     SystemMonitoringActuator,
@@ -46,8 +47,7 @@ parser.add_argument(
     default=None,
 )
 args = parser.parse_args()
-config = ValidatedEnvironment.load_and_validate_context(
-    str(CONFIG_PATH), args.config)
+config = ValidatedEnvironment.load_and_validate_context(str(CONFIG_PATH), args.config)
 LOGGER.setLevel(LOGGING_LEVELS[config["logging_level"]])
 
 
@@ -80,7 +80,10 @@ eyetracking_config = dict(
 experiment_config = config["experiment_info"]
 experiment_id = experiment_config["id"]
 experiment_duration = experiment_config["duration"]
+
 experiment_path = str(Path(experiment_config["path"]).expanduser().resolve())
+
+
 if not Path(experiment_path).exists():
     raise ValueError(f"Experiment path: {experiment_path} does not exist.")
 
@@ -101,9 +104,7 @@ LOGGER.info(
 
 avatar = Avatar(
     [],  # relevant sensors are added by default
-    [AvatarSystemMonitoringActuator(),
-     AvatarTrackingActuator(),
-     AvatarResourceManagementActuator()],
+    [],  # relevent actuators are added when the corresponding task is enabled
     # eyetracker=(
     #     Avatar.get_default_eyetracker(**eyetracking_config)
     #     if eyetracking_config["enabled"]
@@ -112,16 +113,19 @@ avatar = Avatar(
     window_config=window_config,
 )
 
-guidance_agent = DefaultGuidanceAgent([
-    SystemMonitoringTaskAcceptabilitySensor(),
-    ResourceManagementTaskAcceptabilitySensor(),
-    TrackingTaskAcceptabilitySensor()],
+guidance_agent = DefaultGuidanceAgent(
+    [
+        SystemMonitoringTaskAcceptabilitySensor(),
+        ResourceManagementTaskAcceptabilitySensor(),
+        TrackingTaskAcceptabilitySensor(),
+    ],
     # change this actuator for different guidance to be shown (must inherit from GuidanceActuator)
-    [DefaultGuidanceActuator(arrow_mode="mouse")]
+    [DefaultGuidanceActuator(arrow_mode="mouse")],
 )
 
 env = MultiTaskEnvironment(
-    agents=[avatar, guidance_agent],
+    avatar=avatar,
+    agents=[guidance_agent],
     wait=0.05,
     svg_size=config["canvas_size"],
     svg_position=config["canvas_offset"],
@@ -129,28 +133,27 @@ env = MultiTaskEnvironment(
 )
 
 # NOTE: if you have more tasks to add, add them here! dynamic loading is not enabled by default, if you want to load actuators dynamically, enable it in the ambient.
-env.register_task(
+env.add_task(
     name=TASK_ID_TRACKING,
     path=[experiment_path, TASK_PATHS[TASK_ID_TRACKING]],
     agent_actuators=[TrackingActuator],
+    avatar_actuators=[AvatarTrackingActuator],
+    enable=TASK_ID_TRACKING in config["enable_tasks"],
 )
-if TASK_ID_TRACKING in config["enable_tasks"]:
-    env.enable_task(TASK_ID_TRACKING)
 
-env.register_task(
+env.add_task(
     name=TASK_ID_SYSTEM_MONITORING,
     path=[experiment_path, TASK_PATHS[TASK_ID_SYSTEM_MONITORING]],
     agent_actuators=[SystemMonitoringActuator],
+    avatar_actuators=[AvatarSystemMonitoringActuator],
+    enable=TASK_ID_SYSTEM_MONITORING in config["enable_tasks"],
 )
-if TASK_ID_SYSTEM_MONITORING in config["enable_tasks"]:
-    env.enable_task(TASK_ID_SYSTEM_MONITORING)
 
-env.register_task(
+env.add_task(
     name=TASK_ID_RESOURCE_MANAGEMENT,
     path=[experiment_path, TASK_PATHS[TASK_ID_RESOURCE_MANAGEMENT]],
     agent_actuators=[ResourceManagementActuator],
+    avatar_actuators=[AvatarResourceManagementActuator],
+    enable=TASK_ID_RESOURCE_MANAGEMENT in config["enable_tasks"],
 )
-if TASK_ID_RESOURCE_MANAGEMENT in config["enable_tasks"]:
-    env.enable_task(TASK_ID_RESOURCE_MANAGEMENT)
-
 env.run()

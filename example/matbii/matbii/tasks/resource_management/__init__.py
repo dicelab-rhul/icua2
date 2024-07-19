@@ -3,9 +3,19 @@ from .resource_management import (
     ResourceManagementActuator,
     AvatarResourceManagementActuator,
     SetPumpAction,
+    BurnFuelAction,
+    PumpFuelAction,
+    TogglePumpFailureAction,
 )
 
-__all__ = ("ResourceManagementActuator", "AvatarResourceManagementActuator")
+__all__ = (
+    "ResourceManagementActuator",
+    "AvatarResourceManagementActuator",
+    "SetPumpAction",
+    "BurnFuelAction",
+    "PumpFuelAction",
+    "TogglePumpFailureAction",
+)
 
 rules_set_registry.add(
     "pump_state",
