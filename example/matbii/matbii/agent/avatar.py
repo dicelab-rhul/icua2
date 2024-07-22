@@ -1,30 +1,28 @@
-from typing import List
-from functools import partial
-from star_ray.agent import Sensor, Actuator, observe, decide
+from star_ray.agent import Sensor, Actuator, observe
 
 from star_ray_pygame.avatar import Avatar as PygameAvatar
 from star_ray_pygame import WindowConfiguration
-from icua2.event import (
+from icua.event import (
     RenderEvent,
     WindowMoveEvent,
     WindowResizeEvent,
 )
 
-from icua2.extras.eyetracking import (
+from icua.extras.eyetracking import (
     EyetrackerWithUI,
     EyeMotionEvent,
     WindowSpaceFilter,
     NWMAFilter,
     IVTFilter,
 )
-from icua2.agent import AvatarActuator
+from icua.agent import AvatarActuator
 
 
 class Avatar(PygameAvatar):
     def __init__(
         self,
-        sensors: List[Sensor],
-        actuators: List[Actuator],
+        sensors: list[Sensor],
+        actuators: list[Actuator],
         eyetracker: EyetrackerWithUI = None,
         window_config: WindowConfiguration = None,
         **kwargs,
@@ -103,8 +101,8 @@ class Avatar(PygameAvatar):
         ivf = IVTFilter(velocity_threshold=velocity_threshold)
         # this filter will be set up fully (screen/window position/size) when the eyetracker is started!
         wsf = WindowSpaceFilter(nan, nan, nan)
-        # TODO try some other eyetrackers providers? when they are implemented in icua2
-        from icua2.extras.eyetracking.tobii import (
+        # TODO try some other eyetrackers providers? when they are implemented in icua
+        from icua.extras.eyetracking.tobii import (
             TobiiEyetracker,
             TOBII_RESEACH_SDK_AVALIABLE,
         )

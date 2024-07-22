@@ -5,8 +5,8 @@ from functools import partial
 from pydantic import Field, field_validator
 
 
-from icua2.agent import agent_actuator, attempt, Actuator
-from icua2.event import XMLQuery, MouseButtonEvent
+from icua.agent import agent_actuator, attempt, Actuator
+from icua.event import XMLQuery, MouseButtonEvent
 
 from star_ray_xml import (
     XMLState,
@@ -21,7 +21,6 @@ VALID_SLIDER_IDS = [1, 2, 3, 4]
 
 
 class AvatarSystemMonitoringActuator(Actuator):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._get_light_targets = partial(
@@ -66,7 +65,6 @@ class AvatarSystemMonitoringActuator(Actuator):
 
 @agent_actuator
 class SystemMonitoringActuator(Actuator):
-
     @attempt
     def on_light(self, target: int):
         """Turn on the given light."""
@@ -99,7 +97,6 @@ def ResetSliderAction(target: int) -> "SetSliderAction":
 
 
 class SetSliderAction(XMLQuery):
-
     target: int  # slider to target
     state: (
         int | None

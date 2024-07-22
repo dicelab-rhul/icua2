@@ -1,17 +1,17 @@
-from typing import List, Dict, Any
-from icua2.event import EyeMotionEvent, MouseMotionEvent
-from icua2.agent import GuidanceAgent as _GuidanceAgent
+from typing import Any
+from icua.event import EyeMotionEvent, MouseMotionEvent
+from icua.agent import GuidanceAgent as _GuidanceAgent
 
 
 class GuidanceAgent(_GuidanceAgent):
     """Base class for matbii guidance agents."""
 
     @property
-    def mouse_at_elements(self) -> List[str]:
+    def mouse_at_elements(self) -> list[str]:
         """Getter for the elements that the mouse pointer is currently over (according to this agents beliefs).
 
         Returns:
-            List[str]: list of element id's that the mouse pointer is currently over.
+            List[str]: list of element ids that the mouse pointer is currently over.
         """
         try:
             return next(self.get_latest_user_input(MouseMotionEvent)).target
@@ -19,7 +19,7 @@ class GuidanceAgent(_GuidanceAgent):
             return []
 
     @property
-    def mouse_position(self) -> Dict[str, Any]:
+    def mouse_position(self) -> dict[str, Any]:
         """Getter for the user's current mouse position (according to this agents beliefs).
 
         Returns:
@@ -32,7 +32,7 @@ class GuidanceAgent(_GuidanceAgent):
             return None
 
     @property
-    def gaze_at_elements(self) -> List[str]:
+    def gaze_at_elements(self) -> list[str]:
         """Getter for the elements that the user is currently gazing at (according to this agents beliefs).
 
         Returns:
@@ -44,7 +44,7 @@ class GuidanceAgent(_GuidanceAgent):
             return []
 
     @property
-    def gaze_position(self) -> Dict[str, Any]:
+    def gaze_position(self) -> dict[str, Any]:
         """Getter for the user's current gaze position (according to this agents beliefs).
 
         Returns:

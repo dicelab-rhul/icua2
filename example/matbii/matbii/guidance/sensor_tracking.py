@@ -1,26 +1,23 @@
-from typing import List
 from star_ray_xml import select, Select
-from icua2.agent import TaskAcceptabilitySensor
+from icua.agent import TaskAcceptabilitySensor
 
-from .._const import (
-    TASK_ID_TRACKING, tracking_box_id, tracking_target_id
-)
+from .._const import TASK_ID_TRACKING, tracking_box_id, tracking_target_id
 
 
 class TrackingTaskAcceptabilitySensor(TaskAcceptabilitySensor):
-
     def __init__(self, *args, **kwargs):
         super().__init__(TASK_ID_TRACKING, *args, **kwargs)
 
     def is_active(self, task: str = None, **kwargs) -> bool:
         return True  # TODO
 
-    def is_acceptable(self,  task: str = None, **kwargs) -> bool:
+    def is_acceptable(self, task: str = None, **kwargs) -> bool:
         if task is None or task == TASK_ID_TRACKING:
             return self.is_tracking_acceptable()
         else:
             raise KeyError(
-                f"Invalid subtask: {task}, doesn't exist for task {self.task_name}")
+                f"Invalid subtask: {task}, doesn't exist for task {self.task_name}"
+            )
 
     def is_tracking_acceptable(self):
         target = self.beliefs.get(tracking_target_id(), None)
@@ -51,7 +48,7 @@ class TrackingTaskAcceptabilitySensor(TaskAcceptabilitySensor):
         max_x, max_y = rect_max
         return min_x <= px <= max_x and min_y <= py <= max_y
 
-    def sense(self) -> List[Select]:
+    def sense(self) -> list[Select]:
         return [
             select(
                 xpath=f"//*[@id='{tracking_target_id()}']",

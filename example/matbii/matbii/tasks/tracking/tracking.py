@@ -1,13 +1,12 @@
 import math
 import random
 import time
-from typing import Tuple
 from pydantic import field_validator
 
 from star_ray_xml import XMLState, Expr, update, select
-from icua2.event import KeyEvent, XMLQuery
-from icua2.utils import LOGGER
-from icua2.agent import Actuator, attempt
+from icua.event import KeyEvent, XMLQuery
+from icua.utils import LOGGER
+from icua.agent import Actuator, attempt
 
 
 from ..._const import DEFAULT_KEY_BINDING  # TODO support other key bindings?
@@ -24,7 +23,6 @@ DEFAULT_TARGET_SPEED = 100
 
 
 class AvatarTrackingActuator(Actuator):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._keys_pressed = set()
@@ -67,9 +65,8 @@ class AvatarTrackingActuator(Actuator):
 
 
 class TrackingActuator(Actuator):
-
     @attempt
-    def move_target(self, direction: Tuple[float, float] | int | float, speed: float):
+    def move_target(self, direction: tuple[float, float] | int | float, speed: float):
         """Move the target in a given direction at a given speed."""
         # an angle was provided (in degrees), convert it to a direction vector
         if isinstance(direction, (int, float)):
@@ -87,12 +84,11 @@ class TrackingActuator(Actuator):
 
 # TODO ??
 class TrackingModeAction(XMLQuery):
-
     manual: bool
 
 
 class TargetMoveAction(XMLQuery):
-    direction: Tuple[float, float]
+    direction: tuple[float, float]
     speed: float
 
     @field_validator("direction", mode="before")

@@ -3,8 +3,43 @@ import pathlib
 from datetime import datetime
 from pydantic import BaseModel
 from star_ray.pubsub import Subscriber
-from star_ray.utils._logging import LOGGER, Indent
-import json
+
+
+from loguru import logger as _logger
+from pathlib import Path
+import os
+import sys
+
+_BASE_DIRECTORY = Path(os.getcwd())
+
+
+def format_record(record):
+    file_path = Path(record["file"].path)
+    try:
+        file_path = file_path.relative_to(_BASE_DIRECTORY)
+    except ValueError:
+        pass
+
+    # Format the log message
+    return "{level} | {file}:{line} - {message}".format(
+        # time=record["time"].strftime("%H:%M:%S"),
+        level=record["level"].name,
+        file=str(file_path),
+        line=record["line"],
+        message=record["message"],
+    )
+
+
+# Configure the logger
+LOGGER = _logger.bind(package="icua")
+LOGGER.remove()
+LOGGER.add(
+    sink=sys.stdout,
+    format=format_record,
+    level="DEBUG",
+)
+
+__all__ = ("LOGGER",)
 
 
 class DateTimeFormatter(logging.Formatter):

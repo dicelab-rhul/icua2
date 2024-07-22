@@ -6,10 +6,9 @@ TASK_ID_TRACKING = "tracking"
 TASK_ID_SYSTEM_MONITORING = "system_monitoring"
 TASK_ID_RESOURCE_MANAGEMENT = "resource_management"
 CONFIG_PATH = _TASK_PATH / "config.schema.json"
-assert os.path.exists((str(CONFIG_PATH)))
+assert os.path.exists(str(CONFIG_PATH))
 
-TASKS = [TASK_ID_TRACKING, TASK_ID_SYSTEM_MONITORING,
-         TASK_ID_RESOURCE_MANAGEMENT]
+TASKS = [TASK_ID_TRACKING, TASK_ID_SYSTEM_MONITORING, TASK_ID_RESOURCE_MANAGEMENT]
 TASK_PATHS = {t: str(_TASK_PATH / t) for t in TASKS}
 for task, path in TASK_PATHS.items():
     assert os.path.exists(str(path))

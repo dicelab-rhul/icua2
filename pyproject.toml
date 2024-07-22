@@ -1,5 +1,5 @@
 [project]
-name = "icua2"
+name = "icua"
 version = "2.0.2"
 description = "Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance."
 authors = [{name = "Benedict Wilkins", email = "benrjw@gmail.com"}]
@@ -22,9 +22,30 @@ aiostream = ">=0.6.1"
 [tool.poetry.extras]
 tobii = ["tobii_research"]
 
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra -q"]
+testpaths = ["test/"]
+python_files = "*/test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+  "webtest: mark a test as a webtest.",
+  "slow: mark tests as slow (deselect with '-m \"not slow\"')."
+]
+filterwarnings = [
+  "ignore::DeprecationWarning:pydantic",
+  "ignore::DeprecationWarning:pygame",
+  "ignore::DeprecationWarning:cerberus",
+]
+
+
+
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "example/", # TODO remove this, these should be tested/documented aswell!
     ".bzr",
     ".direnv",
     ".eggs",

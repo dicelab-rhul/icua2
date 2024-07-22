@@ -1,16 +1,16 @@
-"""Bridge between the Tobii (pro) eyetracking API and the `icua2` eyetracking API."""
+"""Bridge between the Tobii (pro) eyetracking API and the `icua` eyetracking API."""
 
-from typing import List, Dict, Any, Callable
 import time
 import asyncio
 import traceback
-from .event import EyeMotionEvent
-from .utils import EyetrackingConfigurationError
+from .error import EyetrackingConfigurationError
 from .eyetrackerbase import EyetrackerBase
 from ...utils import LOGGER
 
+from star_ray import Event
+
 try:
-    import tobii_research as _tr
+    import tobii_research as _tr  # noqa
 
     TOBII_RESEACH_SDK_AVALIABLE = True
 except ModuleNotFoundError:
@@ -50,30 +50,29 @@ RIGHT_GAZE_ORIGIN_VALIDITY = "right_gaze_origin_validity"
 
 
 class TobiiEyetracker(EyetrackerBase):
-    """
-    This class exposes the Tobii (pro) eyetracking API. It may be used by an avatar (or the environment) to get data on a users gaze location.
-    """
+    """This class exposes the Tobii (pro) eyetracking API. It may be used by an avatar (or the environment) to get data on a users gaze location."""
 
     def __init__(
         self,
-        uri: str = None,
-        filters: List[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        uri: str | None = None,
         **kwargs,
     ):
         """Constructor.
 
         Args:
-            uri (str): the unique address of the eyetracker hardware, this can be found in the `Tobii Pro Eyetracker Manager` example: "tet-tcp://172.28.195.1". This software should also be used to calibrate the eyetracker, there is currently no built in calibrating from within the icua2 system. Defaults to None, in which case the first avaliable eyetracker will be used.
+            uri (str): the unique address of the eyetracker hardware, this can be found in the `Tobii Pro Eyetracker Manager` example: "tet-tcp://172.28.195.1". This software should also be used to calibrate the eyetracker, there is currently no built in calibrating from within the icua system. Defaults to None, in which case the first avaliable eyetracker will be used.
+            kwargs (dict[str,Any]): additional optional keyword arguments.
+
         Raises:
-            ModuleNotFoundError: If the `tobii_research` module could not be found.
+            ModuleNotFoundError: If the required `tobii_research` module could not be found.
         """
         # the module was not found, but someone is trying to create an instance of this class!
         try:
-            import tobii_research as _
+            import tobii_research as _  # noqa
         except ModuleNotFoundError as e:
             raise e
 
-        super().__init__(filters=filters)
+        super().__init__()
         self._buffer = asyncio.Queue()
         self._uri = uri
         self._eyetracker = None
@@ -96,7 +95,7 @@ class TobiiEyetracker(EyetrackerBase):
                     f"Failed to initialise eyetracker at uri: {self._uri}, see cause above. Also check that the eyetracker is connected and avaliable in the official Tobii Pro Eye Tracker Manager software. "
                 ) from exception
 
-    def start(self):
+    def start(self):  # noqa
         try:
             # NOTE: it is important that this is called in async context
             self._event_loop = asyncio.get_event_loop()
@@ -119,12 +118,12 @@ class TobiiEyetracker(EyetrackerBase):
             f" at {self._uri}" if self._uri else "",
         )
 
-    def stop(self):
+    def stop(self):  # noqa
         self._eyetracker.unsubscribe_from(
             _tr.EYETRACKER_GAZE_DATA, self._internal_callback
         )
 
-    def _internal_callback(self, gaze_sample):
+    def _internal_callback(self, gaze_sample) -> None:
         try:
             dt = (gaze_sample[SYSTEM_TIME_STAMP] - self._t0[0]) / 10e5
             timestamp = self._t0[1] + dt
@@ -147,15 +146,12 @@ class TobiiEyetracker(EyetrackerBase):
                 # it is useful to know when eyetracking events failed
                 point = (float("nan"), float("nan"))
             event = dict(timestamp=timestamp, position=point)
-            # apply filters in order
-            for _filter in self._filters:
-                event = _filter(event)
             # this is called from another thread (managed by tobii_research, it needs to happen in a thread safe way)
             self._event_loop.call_soon_threadsafe(self._buffer.put_nowait, event)
         except Exception as e:
             traceback.print_exception(e)
 
-    async def get(self) -> List[EyeMotionEvent]:
+    async def get(self) -> list[Event]:  # noqa
         items = []
         items.append(await self._buffer.get())
         while not self._buffer.empty():
@@ -163,41 +159,9 @@ class TobiiEyetracker(EyetrackerBase):
             items.append(item)
         return items
 
-    def get_nowait(self) -> List[EyeMotionEvent]:
+    def get_nowait(self) -> list[Event]:  # noqa
         items = []
         while not self._buffer.empty():
             item = self._buffer.get_nowait()
             items.append(item)
         return items
-
-
-# class _IterWait:
-
-#     def __init__(self, buffer, wait):
-#         self._wait = wait
-#         self._buffer = buffer
-
-#     def __aiter__(self):
-#         return self
-
-#     async def __anext__(self) -> List[Tuple]:
-#         # wait at least self._wait time, then wait for the next element
-#         await asyncio.sleep(self._wait)
-#         items = []
-#         items.append(await self._buffer.get())
-#         while not self._buffer.empty():
-#             item = self._buffer.get_nowait()
-#             items.append(item)
-#         return items
-
-
-# class _Iter:
-
-#     def __init__(self, buffer):
-#         self._buffer = buffer
-
-#     def __aiter__(self):
-#         return self
-
-#     async def __anext__(self) -> List[Tuple]:
-#         return [await self._buffer.get()]

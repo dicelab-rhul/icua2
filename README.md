@@ -1,4 +1,4 @@
-# Integrated Cognative User Assistance 2 (icua2)
+# Integrated Cognative User Assistance 2 (icua)
 
 Training videos and a summary of MATBII functionality can be found here.
 

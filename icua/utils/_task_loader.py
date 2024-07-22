@@ -1,9 +1,10 @@
-from typing import Dict, Set, List, Tuple, Any, Type, Callable
+from typing import Any
+from collections.abc import Callable
 import importlib.util
 import inspect
 import sys
 import random
-from lxml.etree import ElementBase, canonicalize
+from lxml.etree import canonicalize
 from jinja2 import Template
 from functools import wraps
 from pathlib import Path
@@ -27,7 +28,7 @@ CLSATTR_IS_AVATAR_ACTUATOR = "__is_avatar_actuator__"
 CLSATTR_IS_AGENT_ACTUATOR = "__is_agent_actuator__"
 
 
-def avatar_actuator(cls: Type[Actuator]):
+def avatar_actuator(cls: type[Actuator]):
     if not issubclass(cls, Actuator):
         raise TaskConfigurationError(
             f"Invalid use of @avatar, {cls} must derive `{Actuator.__name__}`"
@@ -36,7 +37,7 @@ def avatar_actuator(cls: Type[Actuator]):
     return cls
 
 
-def agent_actuator(cls: Type[Actuator]):
+def agent_actuator(cls: type[Actuator]):
     if not issubclass(cls, Actuator):
         raise TaskConfigurationError(
             f"Invalid use of @agent, {cls} must derive `{Actuator.__name__}`"
@@ -46,8 +47,7 @@ def agent_actuator(cls: Type[Actuator]):
 
 
 class AvatarFactory:
-
-    def __init__(self, actuators: List[Type[Actuator] | Callable[[], Actuator]]):
+    def __init__(self, actuators: list[type[Actuator] | Callable[[], Actuator]]):
         self._actuators = actuators
 
     def __call__(self, avatar: Agent):
@@ -60,7 +60,6 @@ class AvatarFactory:
 
 
 class Task:
-
     def __init__(
         self,
         task_name: str,
@@ -78,7 +77,7 @@ class Task:
     def task_name(self):
         return self._task_name
 
-    def get_xml(self, context: Dict[str, Any] | None = None) -> ElementBase:
+    def get_xml(self, context: dict[str, Any] | None = None) -> str:
         if context is None:
             context = dict()
         source = self._task_template.render(context)
@@ -108,7 +107,6 @@ class _DefaultFuncs:
 
 
 class TaskLoader:
-
     def __init__(self):
         super().__init__()
         self._jinja_env = ValidatedEnvironment(
@@ -124,10 +122,10 @@ class TaskLoader:
             _DefaultFuncs.uniform,
         ]
 
-    def register_task(self, name: str, path: str | List[str]) -> None:
-        if isinstance(path, (str, Path)):
+    def register_task(self, name: str, path: str | list[str]) -> None:
+        if isinstance(path, str | Path):
             path = [TaskLoader._path_normalise(path)]
-        elif isinstance(path, (list, tuple)):
+        elif isinstance(path, list | tuple):
             path = [TaskLoader._path_normalise(p) for p in path]
         LOGGER.debug("Registering task: `%s` at path(s): `%s`", name, [p for p in path])
         self._template_loader.add_namespace(name, path)
@@ -135,8 +133,8 @@ class TaskLoader:
     def load(
         self,
         task_name: str,
-        avatar_actuators: List[Actuator],
-        agent_actuators: List[Actuator],
+        avatar_actuators: list[Actuator],
+        agent_actuators: list[Actuator],
     ) -> Task:
         task_template = self.get_task_template(task_name=task_name)
         agent_factory = self.get_schedule(task_name, agent_actuators)
@@ -154,7 +152,7 @@ class TaskLoader:
         return self._jinja_env.get_template(state_path.as_posix())
 
     def get_task_source(
-        self, task_name: str, context: Dict[str, Any] | None = None
+        self, task_name: str, context: dict[str, Any] | None = None
     ) -> str:
         if context is None:
             context = dict()  # no additional context
@@ -162,7 +160,7 @@ class TaskLoader:
         return template.render(context)
 
     def get_schedule(
-        self, task_name: str, actuators: List[Type[Actuator]]
+        self, task_name: str, actuators: list[type[Actuator]]
     ) -> Callable[[], Agent]:
         actuators = set(actuators)
         has_actuators = len(actuators) > 0
@@ -174,23 +172,20 @@ class TaskLoader:
             # TODO perhaps we shouldnt load as a template... just load as text?
             # the templating syntax might interfere with things?
             source = self._jinja_env.get_template(schedule_path.as_posix()).render()
-            with LOGGER.indent:
-                # print(agent_actuators)
-                agent_factory = ScheduledAgentFactory(
-                    source,
-                    actuators,
-                    self.get_schedule_functions(),
-                )
+            agent_factory = ScheduledAgentFactory(
+                source,
+                actuators,
+                self.get_schedule_functions(),
+            )
             return agent_factory
         elif has_actuators:
             raise TaskConfigurationError(
                 f"Configuration file: `{task_name}{EXT_SCHEDULE}` is missing for task: `{task_name}` but actuators: {actuators} were specified."
             )
 
-    @LOGGER.indent
     def _validate_state_files(
-        self, files: Dict[str, str], task_name: str
-    ) -> Tuple[Path, Path, Path]:
+        self, files: dict[str, str], task_name: str
+    ) -> tuple[Path, Path, Path]:
         state_path, context_path, schema_path = None, None, None
         if EXT_SVG in files:
             state_path = files[EXT_SVG]
@@ -198,27 +193,26 @@ class TaskLoader:
         elif EXT_SVG_TEMPLATE in files:
             state_path = files[EXT_SVG_TEMPLATE]
             LOGGER.debug("loading state: `%s` ", state_path.name)
-            with LOGGER.indent:
-                has_schema = EXT_SCHEMA in files
-                has_context = EXT_CONTEXT in files
-                if not has_context and not has_schema:
-                    raise TaskConfigurationError(
-                        f"Configuration file: `{task_name}{EXT_CONTEXT}` is missing from task template: `{state_path.name}`."
-                    )
-                elif not has_schema:
-                    LOGGER.warning(
-                        "validation schema: `%s%s` is missing from task template: `%s`",
-                        task_name,
-                        EXT_SCHEMA,
-                        state_path.name,
-                    )
+            has_schema = EXT_SCHEMA in files
+            has_context = EXT_CONTEXT in files
+            if not has_context and not has_schema:
+                raise TaskConfigurationError(
+                    f"Configuration file: `{task_name}{EXT_CONTEXT}` is missing from task template: `{state_path.name}`."
+                )
+            elif not has_schema:
+                LOGGER.warning(
+                    "validation schema: `%s%s` is missing from task template: `%s`",
+                    task_name,
+                    EXT_SCHEMA,
+                    state_path.name,
+                )
 
-                if has_schema:
-                    schema_path = files[EXT_SCHEMA]
-                    LOGGER.debug("with validator schema: `%s`", schema_path.name)
-                if has_context:
-                    context_path = files[EXT_CONTEXT]
-                    LOGGER.debug("with context: `%s`", context_path.name)
+            if has_schema:
+                schema_path = files[EXT_SCHEMA]
+                LOGGER.debug("with validator schema: `%s`", schema_path.name)
+            if has_context:
+                context_path = files[EXT_CONTEXT]
+                LOGGER.debug("with context: `%s`", context_path.name)
         else:
             raise TaskConfigurationError(
                 f"State file: `{task_name}{EXT_SVG}(.jinja)` is missing for task: `{task_name}`."
@@ -365,7 +359,6 @@ def dont_write_bytecode(fun):
 def load_task_package_from_path(
     path: str | Path, task_name: str, suppress_warnings: bool = False
 ):
-
     path = Path(path).expanduser().resolve()
     module_name = f"_{task_name}"
     files = [
@@ -393,7 +386,7 @@ def load_task_package_from_path(
 
 
 def _get_actuator_classes(
-    classes: List[Type[Actuator]], suppress_warnings: bool = False
+    classes: list[type[Actuator]], suppress_warnings: bool = False
 ):
     actuators = {"avatar": [], "agent": []}
     for cls in classes:

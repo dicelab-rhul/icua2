@@ -3,9 +3,10 @@ import aiostream
 import asyncio
 import itertools
 import inspect
-from typing import List, Dict, Callable, Type, Any
-from star_ray import Agent, Actuator, TypeRouter
-from star_ray import ErrorObservation
+from typing import Any
+from collections.abc import Callable
+from star_ray import Agent, Actuator
+from star_ray.event import ErrorObservation
 from pyfuncschedule import parser as schedule_parser, Schedule, ScheduleParser
 from ._logging import LOGGER
 from ._error import TaskConfigurationError
@@ -14,7 +15,7 @@ from ._error import TaskConfigurationError
 class ScheduledAgent(Agent):
     """The actions of this agent are determined by a fixed schedule that is provided upon creation. The schedule is a collection of `attempts` that are part of the given actuators."""
 
-    def __init__(self, actuators: List[Actuator], schedules: List[Schedule]):
+    def __init__(self, actuators: list[Actuator], schedules: list[Schedule]):
         super().__init__([], actuators)
         self._schedules = [sch.stream() for sch in schedules]
         self._iter_context = None  # set on initialise
@@ -67,13 +68,13 @@ class ScheduledAgentFactory:
     def __init__(
         self,
         schedule_source: str,
-        actuator_types: List[Type[Actuator]],
-        funcs: List[Callable],
+        actuator_types: list[type[Actuator]],
+        funcs: list[Callable],
     ):
         super().__init__()
         self._source = schedule_source
         self._actuator_types = list(set(actuator_types))
-        self._functions: Dict[str, Callable] = {fun.__name__: fun for fun in funcs}
+        self._functions: dict[str, Callable] = {fun.__name__: fun for fun in funcs}
         self._parse_result: Any = None  # TODO type hint...
         self.parse_schedule()
 
@@ -117,7 +118,7 @@ class ScheduledAgentFactory:
         )
         return ScheduledAgent(actuators, schedules)
 
-    def _iter_attempt_methods_unbound(self, actuator: Type[Actuator]):
+    def _iter_attempt_methods_unbound(self, actuator: type[Actuator]):
         assert issubclass(actuator, Actuator)
         methods = inspect.getmembers(actuator, predicate=inspect.isfunction)
         methods = [m[1] for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)]
@@ -131,7 +132,7 @@ class ScheduledAgentFactory:
         for fun in methods:
             yield actuator, fun  # bind
 
-    def _get_all_attempt_methods(self, actuators: List[Actuator | Type[Actuator]]):
+    def _get_all_attempt_methods(self, actuators: list[Actuator | type[Actuator]]):
         if len(actuators) == 0:
             return iter([])
         if isinstance(actuators[0], Actuator):

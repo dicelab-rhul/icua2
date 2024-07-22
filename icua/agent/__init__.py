@@ -23,7 +23,7 @@ from ..event.event_guidance import (
 )
 from .acceptability import (
     TaskAcceptabilitySensor,
-    TaskAcceptibilityObservation,
+    TaskAcceptabilityObservation,
 )
 from .agent_guidance import (
     GuidanceAgent,
@@ -33,7 +33,8 @@ from .sensor_userinput import (
 )
 from .actuator_guidance import (
     GuidanceActuator,
-    DefaultGuidanceActuator,
+    ArrowGuidanceActuator,
+    BoxGuidanceActuator,
 )
 from .actuator_avatar import AvatarActuator
 
@@ -59,10 +60,11 @@ __all__ = (
     "TaskAcceptabilitySensor",
     # actuators
     "GuidanceActuator",
-    "DefaultGuidanceActuator",
+    "ArrowGuidanceActuator",
+    "BoxGuidanceActuator",
     "AvatarActuator",
     # observations
-    "TaskAcceptibilityObservation",
+    "TaskAcceptabilityObservation",
     # agents
     "GuidanceAgent",
 )

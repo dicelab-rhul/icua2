@@ -4,8 +4,8 @@ from pydantic import field_validator
 from functools import partial
 from star_ray_xml import update, select, XMLState, Expr
 
-from icua2.event import XMLQuery, MouseButtonEvent
-from icua2.agent import attempt, Actuator
+from icua.event import XMLQuery, MouseButtonEvent
+from icua.agent import attempt, Actuator
 
 
 TANK_IDS = list("abcdef")
@@ -16,7 +16,6 @@ ALL = "*"
 
 
 class AvatarResourceManagementActuator(Actuator):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._get_pump_targets = partial(
@@ -52,7 +51,6 @@ class AvatarResourceManagementActuator(Actuator):
 
 
 class ResourceManagementActuator(Actuator):
-
     @attempt
     def burn_fuel(self, target: int | str, burn: float):
         """Burns a given amount of fuel in the target tank."""
@@ -75,7 +73,6 @@ class ResourceManagementActuator(Actuator):
 
 
 class PumpAction(XMLQuery):
-
     target: str
 
     OFF: ClassVar[int] = 0
@@ -148,7 +145,6 @@ class SetPumpAction(PumpAction):
 
 
 class TogglePumpAction(PumpAction):
-
     @staticmethod
     def new(target: int | str):
         return TogglePumpAction(target=target)
@@ -171,7 +167,6 @@ class TogglePumpAction(PumpAction):
 
 
 class TogglePumpFailureAction(PumpAction):
-
     @staticmethod
     def new(target: int):
         return TogglePumpFailureAction(target=target)
@@ -193,7 +188,6 @@ class TogglePumpFailureAction(PumpAction):
 
 
 class PumpFuelAction(PumpAction):
-
     flow: float
     XPATH_PUMP: ClassVar[str] = "//svg:rect[@id='pump-%s-button']"
 
@@ -229,7 +223,6 @@ class PumpFuelAction(PumpAction):
 
 
 class BurnFuelAction(XMLQuery):
-
     target: str
     burn: float
 

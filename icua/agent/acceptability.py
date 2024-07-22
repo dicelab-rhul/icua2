@@ -1,31 +1,55 @@
-"""Task acceptability functionality. The `TaskAcceptabilitySensor` can be extended to track the state of a task when used as part of a `icua2.agent.GuidanceAgent`."""
+"""Task acceptability functionality. The `TaskAcceptabilitySensor` can be extended to track the state of a task when used as part of a `icua.agent.GuidanceAgent`."""
 
 from abc import abstractmethod
-from typing import Any, List, Dict
+from typing import Any
+from pydantic import computed_field
 from copy import deepcopy
 from star_ray.agent import Sensor
 from star_ray.event import Event, Observation, ErrorObservation
 from star_ray_xml import Select
 
-__all__ = ("TaskAcceptibilityObservation", "TaskAcceptabilitySensor")
+__all__ = ("TaskAcceptabilityObservation", "TaskAcceptabilitySensor")
 
 
-class TaskAcceptibilityObservation(Observation):
-    """Observation representing whether a given task is active and in an acceptable state.
+class TaskAcceptabilityObservation(Observation):
+    """Observation representing the acceptability and activity of a given task.
+
     The `values` attribute contains the following fields:
-        - `task` (str): the name of the task
-        - `is_active (bool): whether the task is currently active
-        - `is_acceptable` (bool): whether the task is in an acceptable state, this is always False if `is_active` is False.
+    - `task` (str): the name of the task.
+    - `is_active` (bool): whether the task is currently active.
+    - `is_acceptable` (bool): whether the task is in an acceptable state, this is always False if `is_active` is False.
     """
 
-    # TODO validate `values` - is_active, is_acceptable.
-    pass
+    @computed_field
+    @property
+    def task(self) -> str:
+        """Getter for the name of the task."""
+        return self.values["task"]
+
+    @computed_field
+    @property
+    def is_active(self) -> str:
+        """Whether the task is currently active."""
+        return self.values["is_active"]
+
+    @computed_field
+    @property
+    def is_acceptable(self) -> str:
+        """Whether the task is in an acceptable state, this is always False if `is_active` is False."""
+        return self.values["is_acceptable"]
 
 
 class TaskAcceptabilitySensor(Sensor):
     """This `Sensor` can be used by an agent to track the acceptability of a task."""
 
-    def __init__(self, task_name: str, *args, **kwargs):
+    def __init__(self, task_name: str, *args: list[Any], **kwargs: dict[str, Any]):
+        """Constructor.
+
+        Args:
+            task_name (str): task to track.
+            args (list[Any]): Additional optional arguments.
+            kwargs (dict[str,Any]): Additional optionals keyword arguments.
+        """
         super().__init__(*args, **kwargs)
         self._task_name = task_name
         self._beliefs = dict()
@@ -54,7 +78,7 @@ class TaskAcceptabilitySensor(Sensor):
         """
 
     @abstractmethod
-    def sense(self) -> List[Select]:
+    def sense(self) -> list[Select]:
         """Sense actions that are relevant for tracking the acceptability for the given task. This method will be called automatically during the sense cycle of this `Sensor`. The resulting observations are stored internally and used to determine the acceptability of the given task.
 
         Returns:
@@ -62,8 +86,21 @@ class TaskAcceptabilitySensor(Sensor):
         """
 
     def sense_element(
-        self, element_id: str = None, xpath: str = None, attributes: List[str] = None
+        self, element_id: str = None, xpath: str = None, attributes: list[str] = None
     ) -> Select:
+        """Factory for a sensor action that will sense an element with a given `id`.
+
+        Args:
+            element_id (str, optional): `id` of the element to sense  (if `xpath` is not provided). Defaults to None.
+            xpath (str, optional): xpath of the element (if `element_id` is not provided). Defaults to None.
+            attributes (list[str], optional): element attributes to sense. Defaults to None.
+
+        Raises:
+            ValueError: if both `element_id` and `xpath` are provided.
+
+        Returns:
+            Select: the sense action.
+        """
         # TODO maybe this could be in a parent class? e.g. an XMLSensor?
         if element_id is None and xpath is None:
             raise ValueError("One of: `element_id` or `xpath` must be specified.")
@@ -75,20 +112,19 @@ class TaskAcceptabilitySensor(Sensor):
             attributes.append("id")
         return Select(source=self.id, xpath=xpath, attrs=attributes)
 
-    def iter_observations(self):
-        for error_observation in self._errors:
-            yield error_observation
+    def iter_observations(self):  # noqa
+        yield from self._errors
         self._errors.clear()
         is_active = self.is_active(self.task_name)
         if not is_active:
-            yield TaskAcceptibilityObservation(
+            yield TaskAcceptabilityObservation(
                 source=self.id,
                 values=dict(
                     task=self.task_name, is_active=is_active, is_acceptable=False
                 ),
             )
         else:
-            yield TaskAcceptibilityObservation(
+            yield TaskAcceptabilityObservation(
                 source=self.id,
                 values=dict(
                     task=self.task_name,
@@ -97,16 +133,16 @@ class TaskAcceptabilitySensor(Sensor):
                 ),
             )
 
-    def __sense__(self) -> List[Event]:
+    def __sense__(self) -> list[Event]:  # noqa
         actions = self.sense()
         # sense() must return a list of actions!
-        if not isinstance(actions, (list, tuple)):
+        if not isinstance(actions, list | tuple):
             raise TypeError(
                 f"sense() must return a `list` of events, received: {type(actions)}"
             )
         return actions
 
-    def __transduce__(self, observations: List[Observation]) -> List[Observation]:
+    def __transduce__(self, observations: list[Observation]) -> list[Observation]:  # noqa
         # This is called whenever a new observation is sensed by this sensor (either via __query__ or __notify__).
         # The observations are consumed by the sensor to update the current beliefs.
         # New observations will be generated in `iter_observations` based on the beliefs,
@@ -117,9 +153,7 @@ class TaskAcceptabilitySensor(Sensor):
         return []
 
     def on_error_observation(self, observation: ErrorObservation):
-        """Handle observation errors, which may occur if for example, required task elements are missing during sense actions.
-        By default these error observations will be produced by `iter_observations` delegating the error handling to the agent.
-        Override this method if you want custom behaviour for handling errors.
+        """Handle observation errors, which may occur if for example, required task elements are missing during sense actions. By default these error observations will be produced by `iter_observations` delegating the error handling to the agent. Override this method if you want custom behaviour for handling errors.
 
         Args:
             observation (ErrorObservation): error observation.
@@ -127,7 +161,7 @@ class TaskAcceptabilitySensor(Sensor):
         self._errors.append(observation)
 
     @property
-    def beliefs(self) -> Dict[str, Any]:
+    def beliefs(self) -> dict[str, Any]:
         """The `Sensor's` current beliefs about the state of the task.
 
         Returns:

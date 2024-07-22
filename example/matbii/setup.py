@@ -9,11 +9,11 @@ setup(
     description="A configurable implementation of the MATB-II: Multi-Attribute Task Battery.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/dicelab-rhul/icua2/tree/main/example/matbii",
+    url="https://github.com/dicelab-rhul/icua/tree/main/example/matbii",
     packages=find_packages(),
-    install_requires=[f"icua2=={ICUA2_VERSION}"],
+    install_requires=[f"icua=={ICUA2_VERSION}"],
     extras_require={
-        "tobii": [f"icua2[tobii]=={ICUA2_VERSION}"],
+        "tobii": [f"icua[tobii]=={ICUA2_VERSION}"],
     },
     python_requires=">=3.10",
     classifiers=[

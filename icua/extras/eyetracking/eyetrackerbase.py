@@ -1,38 +1,32 @@
-from typing import List, Dict, Any, Callable
+"""Module that contains the abstract class `EyetrackerBase` which provides a straight forward API for eyetracking. Typically an `EyetrackerBase` subclass is implemented via an eyetracker hardware provider SDK (see e.g. `TobiiEyetracker`)."""
+
 from abc import ABC, abstractmethod
+from star_ray import Event
 
 
 class EyetrackerBase(ABC):
-
-    def __init__(
-        self,
-        *args,
-        filters: List[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self._filters = filters if filters else []
-
-    def get_filters(self):
-        return self._filters
-
-    def apply_filters(self, data: Dict[str, Any]):
-        for _filter in self._filters:
-            data = _filter(data)
-        return data
+    """Abstract base class for eyetrackers."""
 
     @abstractmethod
     def start(self) -> None:
-        pass
+        """Start the eyetracker."""
 
     @abstractmethod
     def stop(self) -> None:
-        pass
+        """Stop the eyetracker."""
 
     @abstractmethod
-    async def get(self) -> List[Dict[str, Any]]:
-        pass
+    async def get(self) -> list[Event]:
+        """Get the most recent eyetracking events. Will await the next event if there are none pending.
+
+        Returns:
+            list[Event]: recent eyetracking events (most recent first).
+        """
 
     @abstractmethod
-    def get_nowait(self) -> List[Dict[str, Any]]:
-        pass
+    def get_nowait(self) -> list[Event]:
+        """Get the most recent eyetracking events, will return an empty list if there are no pending events.
+
+        Returns:
+            list[Event]: recent eyetracking events (most recent first).
+        """

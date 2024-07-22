@@ -1,13 +1,9 @@
 from datetime import datetime
-from tqdm import tqdm
-import sys
 import asyncio
-import json
-import time
 from star_ray_xml import XMLState, XMLQuery, Update, Insert, Delete, Replace
 from star_ray_pygame import View, WindowConfiguration
 
-from icua2.event import (
+from icua.event import (
     MouseButtonEvent,
     MouseMotionEvent,
     KeyEvent,
@@ -18,7 +14,7 @@ from icua2.event import (
     WindowMoveEvent,
     WindowResizeEvent,
 )
-from icua2.event.event_guidance import (
+from icua.event.event_guidance import (
     DrawBoxAction,
     DrawArrowAction,
     DrawBoxOnElementAction,
@@ -96,7 +92,7 @@ def parse_line(line, whitelist_classes=None):
 
 
 def parse_events(file_path, whitelist=None):
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         for line in file.readlines():
             result = parse_line(line, whitelist_classes=whitelist)
             if result:
@@ -104,7 +100,6 @@ def parse_events(file_path, whitelist=None):
 
 
 async def async_parse_events(file_path):
-
     gen = iter(list(parse_events(file_path)))
 
     t0, event = next(gen)
@@ -115,7 +110,6 @@ async def async_parse_events(file_path):
 
 
 async def main(file_path):
-
     # TODO load the config file that was used - is this logged anywhere?
     WIDTH, HEIGHT = 1000, 800
     NAMESPACES = {"svg": "http://www.w3.org/2000/svg"}

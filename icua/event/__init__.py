@@ -1,4 +1,4 @@
-from typing import Tuple, Type
+"""Package defines or includes many useful event classes including task, guidance, UI, user input and XML/SVG related events."""
 
 from star_ray_pygame.event import (
     MouseButtonEvent,
@@ -31,7 +31,7 @@ from .event_avatar import RenderEvent
 # TODO try-except this?
 from ..extras.eyetracking import EyeMotionEvent
 
-USER_INPUT_TYPES: Tuple[Type] = (
+USER_INPUT_TYPES: tuple[type] = (
     EyeMotionEvent,
     MouseMotionEvent,
     MouseButtonEvent,
@@ -90,4 +90,6 @@ __all__ = (
     "DrawBoxOnElementAction",
     "ShowElementAction",
     "HideElementAction",
+    # misc
+    "RenderEvent",
 )

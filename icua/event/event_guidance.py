@@ -1,4 +1,6 @@
-from typing import Dict, ClassVar, Tuple
+"""Module defining guidance related events."""
+
+from typing import ClassVar
 from pydantic import field_validator
 import lxml.etree as etree
 import math
@@ -6,7 +8,8 @@ import math
 from star_ray.event import Action
 from star_ray_xml import XMLState, XPathQuery, insert, update, select
 from star_ray_pygame.cairosurface import parse_transform
-from star_ray_pygame.ambient import DEFAULT_SVG_NAMESPACES
+from star_ray_pygame import SVGAmbient
+
 
 __all__ = (
     "ShowGuidance",
@@ -21,11 +24,11 @@ __all__ = (
 
 
 class ShowGuidance(Action):
-    """This action should be triggered when guidance starts being shown by an agent."""
+    """This action should be taken when guidance starts being shown by an agent."""
 
     task: str
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         pass
 
 
@@ -34,7 +37,7 @@ class HideGuidance(Action):
 
     task: str
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         pass
 
 
@@ -53,9 +56,9 @@ class XPathAction(XPathQuery):
 
 
 class DrawElementAction(XPathAction):
+    data: dict[str, str]
 
-    data: Dict[str, str]
-    REQUIRED_DATA: ClassVar[Tuple[str]] = tuple()
+    REQUIRED_DATA: ClassVar[tuple[str]] = tuple()
 
     # @validator("data", pre=True, always=True)
     @field_validator("data", mode="before")
@@ -70,7 +73,7 @@ class DrawElementAction(XPathAction):
             for k, v in data.items():
                 if v is None:
                     raise ValueError(
-                        f"{DrawBoxAction.__name__} attribute: {k} cannot be None"
+                        f"{DrawBoxAction.__name__} attribute: {k} cannot be `None`."
                     )
                 yield str(k), str(v)
 
@@ -86,15 +89,15 @@ class DrawElementAction(XPathAction):
         return data
 
     @classmethod
-    def _insert(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _insert(cls, state: XMLState, data: dict[str, str], xpath: str):
         raise NotImplementedError()
 
     @classmethod
-    def _update(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _update(cls, state: XMLState, data: dict[str, str], xpath: str):
         raise NotImplementedError()
 
     @classmethod
-    def _draw(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _draw(cls, state: XMLState, data: dict[str, str], xpath: str):
         raise NotImplementedError()
 
     def __execute__(self, state: XMLState):
@@ -102,22 +105,28 @@ class DrawElementAction(XPathAction):
 
 
 class DrawArrowAction(DrawElementAction):
+    """Event that will draw an arrow in the UI.
+
+    Optional values: scale, id, x, y, opacity, rotation, fill, stroke, stroke_width.
+    """
 
     ARROW_SVG: ClassVar[str] = (
         """<svg:svg xmlns:svg="http://www.w3.org/2000/svg" transform="scale({scale})" id="{id}" x="{x}" y="{y}" opacity="{opacity}" viewBox="-28 -28 178 178" width="200" height="200"><svg:polygon transform="rotate({rotation}, 61.44, 61.44)" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width}" points="148.33, 61.44 32.07, 118.96 62.71, 61.44 32.07, 3.92 148.33, 61.44" /> </svg:svg>"""
     )
-    REQUIRED_DATA: ClassVar[Tuple[str]] = ("id",)
+    REQUIRED_DATA: ClassVar[tuple[str]] = ("id",)
 
     @classmethod
     def new_rotation(cls, rotation: float) -> str:
-        return "rotate(%s, 61.44, 61.44)" % rotation
+        """TODO this should be a utility method."""
+        return f"rotate({rotation}, 61.44, 61.44)"
 
     @classmethod
     def new_scale(cls, scale: float) -> str:
-        return "scale(%s)" % scale
+        """TODO this should be a utility method."""
+        return f"scale({scale})"
 
     @classmethod
-    def _insert(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _insert(cls, state: XMLState, data: dict[str, str], xpath: str):
         data.setdefault("fill", "none")
         data.setdefault("opacity", "1")
         data.setdefault("stroke", "#ff0000")
@@ -130,12 +139,12 @@ class DrawArrowAction(DrawElementAction):
         return state.insert(insert(xpath, element, index=10))
 
     @classmethod
-    def _set_if(cls, attr: str, element: etree.ElementBase, data: Dict[str, str]):
+    def _set_if(cls, attr: str, element: etree.ElementBase, data: dict[str, str]):
         if attr in data:
             element.set(attr, data[attr])
 
     @classmethod
-    def _update(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _update(cls, state: XMLState, data: dict[str, str], xpath: str):
         pol_data = {
             k.replace("_", "-"): data[k]
             for k in ("fill", "stroke", "stroke_width")
@@ -169,7 +178,7 @@ class DrawArrowAction(DrawElementAction):
             state.update(update(xpath=pol_xpath, attrs={"transform": transform}))
 
     @classmethod
-    def _draw(cls, state: XMLState, data: Dict[str, str], xpath: str):
+    def _draw(cls, state: XMLState, data: dict[str, str], xpath: str):
         _id = data.get("id", None)
         assert _id is not None  # must have an 'id'
         # does the element already exist?
@@ -184,6 +193,7 @@ class DrawArrowAction(DrawElementAction):
 
     @staticmethod
     def get_size_scale(state: XMLState, xpath: str):
+        """TODO this should be a utility method."""
         result = state.select(
             select(xpath, attrs=["x", "y", "width", "height", "transform"])
         )
@@ -195,6 +205,7 @@ class DrawArrowAction(DrawElementAction):
 
     @staticmethod
     def get_element_center(state: XMLState, xpath: str):
+        """TODO this should be a utility method."""
         result = state.select(
             select(xpath, attrs=["x", "y", "width", "height", "transform"])
         )
@@ -208,6 +219,17 @@ class DrawArrowAction(DrawElementAction):
 
     @staticmethod
     def rotation_from_point_to(state: XMLState, element_id: str, xpath: str) -> float:
+        """Computes a rotation that points from the center of the arrow to the center of the given element.
+
+        Args:
+            state (XMLState): state of the environment
+            element_id (str): element to point to
+            xpath (str): xpath of the arrow element.
+
+        Returns:
+            float: rotation
+        """
+        # TODO this should be a utility method somewhere that will compute the rotation between two elements given their xpaths!
         # get the center of the arrow
         (x1, y1) = DrawArrowAction.get_element_center(state, xpath)
         # get the center of the element with id `element_id`
@@ -219,21 +241,23 @@ class DrawArrowAction(DrawElementAction):
 
 
 class ShowElementAction(XPathAction):
+    """Action to show an element by setting its opacity to 1."""
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         return state.update(update(self.xpath, attrs={"opacity": 1}))
 
 
 class HideElementAction(XPathAction):
+    """Action to hide an element by setting its opacity to 0."""
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         return state.update(update(self.xpath, attrs={"opacity": 0}))
 
 
 class DrawBoxAction(XPathAction):
+    """TODO."""
 
-    # TODO validate box_data, must contain x,y,width,height
-    box_data: Dict[str, str]
+    box_data: dict[str, str]
 
     # @validator("box_data", pre=True, always=True)
     @field_validator("box_data", mode="before")
@@ -255,7 +279,7 @@ class DrawBoxAction(XPathAction):
         return dict(_validate(data))
 
     @classmethod
-    def _validate_required_box_data(cls, data: Dict[str, str]):
+    def _validate_required_box_data(cls, data: dict[str, str]):
         if not all(x in data for x in ("x", "y", "width", "height")):
             missing = [x for x in ("x", "y", "width", "height") if x not in data]
             raise ValueError(
@@ -264,21 +288,20 @@ class DrawBoxAction(XPathAction):
         return data
 
     @staticmethod
-    def _new_box(state: XMLState, box_data: Dict[str, str], xpath: str):
+    def _new_box(state: XMLState, box_data: dict[str, str], xpath: str):
         box_data.setdefault("stroke-width", "2")
         box_data.setdefault("stroke", "#ff0000")
         box_data.setdefault("fill", "none")
-        print(box_data)
         box = etree.Element(
-            "{%s}rect" % DEFAULT_SVG_NAMESPACES["svg"],
+            f"{SVGAmbient.DEFAULT_SVG_NAMESPACES['svg']}rect",
             attrib=box_data,
-            nsmap=DEFAULT_SVG_NAMESPACES,
+            nsmap=SVGAmbient.DEFAULT_SVG_NAMESPACES,
         )
         box = etree.tostring(box)
         return state.insert(insert(xpath=xpath, element=box, index=0))
 
     @staticmethod
-    def _draw_box(state: XMLState, box_data: Dict[str, str], xpath: str):
+    def _draw_box(state: XMLState, box_data: dict[str, str], xpath: str):
         box_id = box_data.get("id", None)
         if box_id is None:
             raise ValueError("Attempted to draw a box without an `id` attribute.")
@@ -292,11 +315,12 @@ class DrawBoxAction(XPathAction):
                 state, box_data, xpath
             )  # create a new box (it doesnt exist yet)
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         return DrawBoxAction._draw_box(state, self.box_data, self.xpath)
 
 
 class DrawBoxOnElementAction(DrawBoxAction):
+    """TODO."""
 
     # @validator("box_data", pre=True, always=True)
     @field_validator("box_data", mode="before")
@@ -304,7 +328,7 @@ class DrawBoxOnElementAction(DrawBoxAction):
     def _validate_box_data(cls, data):
         return DrawBoxAction._validate_none_box_data(data)
 
-    def __execute__(self, state: XMLState):
+    def __execute__(self, state: XMLState):  # noqa
         required_attrs = ("x", "y", "width", "height")
         result = state.select(select(xpath=self.xpath, attrs=required_attrs))
         if not result:

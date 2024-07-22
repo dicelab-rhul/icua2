@@ -1,36 +1,52 @@
-from typing import List, Tuple, Dict, Type, Iterator, Any
+"""Module that defines the :class:`GuidanceAgent` class. This type of agent can be used to provide visual feedback or "guidance" to a user based on their actions and the current state of the environment, see class documentation for details."""
+
+from typing import Any
+from collections.abc import Iterator
 from collections import defaultdict, deque
 from itertools import islice
 from star_ray.agent import AgentRouted, Component, Sensor, Actuator, observe
-from star_ray.event import (
-    Event,
-    ErrorObservation,
-    ErrorActiveObservation
-)
+from star_ray.event import Event, ErrorObservation, ErrorActiveObservation
 
-from .acceptability import TaskAcceptibilityObservation
+from .acceptability import TaskAcceptabilityObservation
 from .sensor_userinput import UserInputSensor
 
 
 class GuidanceAgent(AgentRouted):
+    """Base class for an agent that can provide users with visual guidance. It makes use of the task acceptability sensor API (see :class:`icua.agent.TaskAcceptabilitySensor`) to determine which tasks may require the users attention.
+
+    The following methods will be called at the appropriate moment (e.g. when a task switchs from an acceptable state to an unacceptable state), a guidance agent should implement these to decide what the do in each case (e.g. show or hide specific guidance).
+    - :func:`on_acceptable(self, task: str)`
+    - :func:`on_unacceptable(self, task: str)`
+    - :func:`on_active(self, task: str)`
+    - :func:`on_inactive(self, task: str)`
+
+    A history of user input events are also recorded and can be conveniently accessed via the :func:`get_latest_user_input` method.
+    """
 
     def __init__(
         self,
-        sensors: List[Sensor],
-        actuators: List[Actuator],
-        user_input_events: Tuple[Type[Event]],
-        user_input_events_history_size: int | List[int] = 50,
+        sensors: list[Sensor],
+        actuators: list[Actuator],
+        user_input_events: tuple[type[Event]] = None,
+        user_input_events_history_size: int | list[int] = 50,
     ):
+        """Constructor.
+
+        Args:
+            sensors (list[Sensor]): list of sensors, this will typically be a list of `icua.agent.TaskAcceptabilitySensor`s. A `UserInputSensor` will always be added automatically.
+            actuators (list[Actuator]): list of actuators, this will typically contain actuators that are capable of providing visual feedback to a user, see e.g. `icua.agent.GuidanceActuator` and its concrete implementations.
+            user_input_events (tuple[type[Event]], optional): additional user input events to subscribe to (see `). Defaults to None.
+            user_input_events_history_size (int | list[int], optional): _description_. Defaults to 50.
+        """
         # this is the guidance agents main sensor, it will sense:
         # user input events (typically) MouseButtonEvent, MouseMotionEvent, KeyEvent
-        user_input_sensor = UserInputSensor(
-            subscribe_to=[*user_input_events])
+        user_input_sensor = UserInputSensor(subscribe_to=[*user_input_events])
         super().__init__([user_input_sensor, *sensors], actuators)
         # agent's beliefs store
         self.beliefs = defaultdict(lambda: None)
         # track the acceptability of each task
-        self._is_task_acceptable: Dict[str, bool] = defaultdict(lambda: False)
-        self._is_task_active: Dict[str, bool] = defaultdict(lambda: False)
+        self._is_task_acceptable: dict[str, bool] = defaultdict(lambda: False)
+        self._is_task_active: dict[str, bool] = defaultdict(lambda: False)
 
         # set up buffers for storing user input events
         if isinstance(user_input_events_history_size, int):
@@ -41,42 +57,99 @@ class GuidanceAgent(AgentRouted):
             t: deque(maxlen=hsize)
             for t, hsize in zip(user_input_events, user_input_events_history_size)
         }
-        self.add_observe_method(self.on_user_input,
-                                self.user_input_types)
+        self.add_observe(self.on_user_input, self.user_input_types)
 
     def on_acceptable(self, task: str):
+        """Called when a task enters an acceptable state.
+
+        Args:
+            task (str): the task.
+        """
         pass
 
     def on_unacceptable(self, task: str):
+        """Called when a task enters an unacceptable state.
+
+        Args:
+            task (str): the task.
+        """
         pass
 
     def on_active(self, task: str):
+        """Called when a task is made active, typically this means it has been enabled in the environment state, but otherwise it may be that the task has appeared to the user (e.g. if it was previously hidden or not ready for user interaction).
+
+        Args:
+            task (str): the task.
+        """
         pass
 
     def on_inactive(self, task: str):
+        """Called when a task is made inactive, typically this means it has been disabled in the environment state, but otherwise it may be that the task is just hidden or not ready for user interaction.
+
+        Args:
+            task (str): the task.
+        """
         pass
 
     @property
     def user_input_types(self):
+        """The types of user input that this agent is tracking (READ ONLY)."""
         return tuple(self._user_input_events.keys())
 
-    def get_latest_user_input(self, event_type: Type, n: int = 1) -> Iterator[Event]:
+    def get_latest_user_input(
+        self, event_type: type, n: int = 1
+    ) -> Iterator[Event] | None:
+        """Getter for the lastest user input of a given type.
+
+        Args:
+            event_type (type): the type of user input to get.
+            n (int, optional): the number of events to retrieve. Defaults to 1 (the latest event).
+
+        Returns:
+            Iterator[Event] | None: an iterator that contains the requested events or None if no such events exist.
+        """
         try:
             return islice(self._user_input_events[event_type], 0, n)
         except IndexError:
             return None
 
     @observe
-    def on_error(self, observation: ErrorActiveObservation | ErrorObservation, component: Component):
+    def on_error(
+        self,
+        observation: ErrorActiveObservation | ErrorObservation,
+        component: Component,
+    ):
+        """Called if this agent receives an :class:`star_ray.event.ErrorObservation` from a component. By default this will re-raise the exception that the observation contains. This can be overriden to alter the default behaviour. The overriding method must be decorated with the `@observe` decorator to work correctly. This method should not be called manually and will be handled by this agents event routing mechanism.
+
+        Args:
+            observation (ErrorActiveObservation | ErrorObservation): the error observation.
+            component (Component): the component that the observation originated from.
+
+        Raises:
+            observation.exception: the exception contained in the observation (raised by default).
+        """
         raise observation.exception()
 
     @observe
-    def on_task_acceptibility(self, observation: TaskAcceptibilityObservation):
-        task = observation.values['task']
+    def on_task_acceptability(self, observation: TaskAcceptabilityObservation):
+        """Called if this agent receives a :class:`icua.agent.TaskAcceptabilityObservation` from one of its sensors.
+
+        This will trigger the relevant callback:
+        - :func:`on_acceptable(self, task: str)`
+        - :func:`on_unacceptable(self, task: str)`
+        - :func:`on_active(self, task: str)`
+        - :func:`on_inactive(self, task: str)`
+
+        This method should not be called manually and will be handled by this agents event routing mechanism.
+
+        Args:
+            observation (TaskAcceptabilityObservation): the acceptability observation
+        """
+        task = observation.values["task"]
         was_active = self._is_task_active[task]
         was_acceptable = self._is_task_acceptable[task]
-        is_active = observation.values['is_active']
-        is_acceptable = observation.values['is_acceptable']
+        is_active = observation.values["is_active"]
+        is_acceptable = observation.values["is_acceptable"]
         self._is_task_active[task] = is_active
         self._is_task_acceptable[task] = is_acceptable
         if was_active and not is_active:
@@ -90,6 +163,12 @@ class GuidanceAgent(AgentRouted):
 
     # this is manually added to the event router (see __init__), so no @observe here
     def on_user_input(self, observation: Any):
+        """Called when this agent receives a user input event, it will add the event to an internal buffer. See :func:`get_latest_user_input`.
+
+        This method should not be called manually and will be handled by this agents event routing mechanism.
+
+        Args:
+            observation (Any): the observation.
+        """
         assert isinstance(observation, self.user_input_types)
-        self._user_input_events[type(
-            observation)].appendleft(observation)
+        self._user_input_events[type(observation)].appendleft(observation)

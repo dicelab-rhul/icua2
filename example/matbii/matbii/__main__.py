@@ -21,9 +21,9 @@ from matbii import (
     CONFIG_PATH,
 )
 from matbii.agent import Avatar
-from icua2 import MultiTaskEnvironment
+from icua import MultiTaskEnvironment
 
-from icua2.utils import LOGGER
+from icua.utils import LOGGER
 from star_ray.ui import WindowConfiguration
 from star_ray.utils import ValidatedEnvironment
 from pathlib import Path

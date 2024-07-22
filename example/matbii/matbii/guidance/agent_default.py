@@ -1,11 +1,14 @@
-from typing import List, Dict
 import time
 import random
 
 from star_ray.agent import Actuator, Sensor, observe
-from icua2.event import USER_INPUT_TYPES, MouseMotionEvent, EyeMotionEvent
-from icua2.agent import GuidanceActuator, DefaultGuidanceActuator, TaskAcceptabilitySensor
-from icua2.utils import LOGGER
+from icua.event import USER_INPUT_TYPES, MouseMotionEvent, EyeMotionEvent
+from icua.agent import (
+    GuidanceActuator,
+    DefaultGuidanceActuator,
+    TaskAcceptabilitySensor,
+)
+from icua.utils import LOGGER
 from star_ray.environment import State  # type hint
 from .agent_base import GuidanceAgent
 
@@ -13,28 +16,39 @@ __all__ = ("DefaultGuidanceAgent", "DefaultGuidanceActuator")
 
 
 class DefaultGuidanceAgent(GuidanceAgent):
-
     # used to break ties when multiple tasks could be highlighted. See `break_guidance_tie` method below.
     BREAK_TIES = ("random", "longest", "since")
 
-    def __init__(self,
-                 sensors: List[Sensor],
-                 actuators: List[Actuator],
-                 break_ties: str = "random",
-                 grace_period: float = 3.,
-                 counter_factual: bool = False,
-                 ** kwargs):
-        super().__init__(sensors, actuators, user_input_events=USER_INPUT_TYPES,
-                         user_input_events_history_size=kwargs.get("user_input_events_history_size", 100))
+    def __init__(
+        self,
+        sensors: list[Sensor],
+        actuators: list[Actuator],
+        break_ties: str = "random",
+        grace_period: float = 3.0,
+        counter_factual: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            sensors,
+            actuators,
+            user_input_events=USER_INPUT_TYPES,
+            user_input_events_history_size=kwargs.get(
+                "user_input_events_history_size", 100
+            ),
+        )
 
         # this agent is tracking the following tasks (based on the provided sensors)
-        self._tracking_tasks = [s.task_name for s in filter(
-            lambda x: isinstance(x, TaskAcceptabilitySensor), self.sensors)]
+        self._tracking_tasks = [
+            s.task_name
+            for s in filter(
+                lambda x: isinstance(x, TaskAcceptabilitySensor), self.sensors
+            )
+        ]
 
         # time since tasks went into an unacceptable state
-        self._task_unacceptable_start: Dict[str, float] = None
+        self._task_unacceptable_start: dict[str, float] = None
         # time since tasks become inactive
-        self._task_inactive_start: Dict[str, float] = None
+        self._task_inactive_start: dict[str, float] = None
         # TODO track the time since user input (gaze) has been provided, we can trigger an error if this is too long
         self._missing_gaze_since: float = None
         # guidance shown on task?
@@ -45,12 +59,14 @@ class DefaultGuidanceAgent(GuidanceAgent):
         self._break_ties = break_ties  # ("random", "longest", "since")
         if self._break_ties not in ("random", "longest", "since"):
             raise ValueError(
-                f"Invalid argument: `break_ties` {self._break_ties} must be one of {DefaultGuidanceAgent.BREAK_TIES}")
+                f"Invalid argument: `break_ties` {self._break_ties} must be one of {DefaultGuidanceAgent.BREAK_TIES}"
+            )
         # time to wait before showing guidance again on a task (can be zero)
         self._grace_period = grace_period  # TODO
         if self._grace_period < 0.0:
             raise ValueError(
-                f"Invalid argument: `grace_period` {self._grace_period} must be > 0 ")
+                f"Invalid argument: `grace_period` {self._grace_period} must be > 0 "
+            )
         # whether to actually display guidance, or just trigger a guidance event
         self._counter_factual = counter_factual
 
@@ -58,13 +74,10 @@ class DefaultGuidanceAgent(GuidanceAgent):
         super().__initialise__(state)
         # initialise task unacceptability and inactivity
         start_time = time.time()  # not accurate but good enough
-        self._task_inactive_start = {
-            t: start_time for t in self._tracking_tasks}
-        self._task_unacceptable_start = {
-            t: start_time for t in self._tracking_tasks}
+        self._task_inactive_start = {t: start_time for t in self._tracking_tasks}
+        self._task_unacceptable_start = {t: start_time for t in self._tracking_tasks}
         # initialise time to last guidance shown
-        self._guidance_last = {
-            t: start_time for t in self._tracking_tasks}
+        self._guidance_last = {t: start_time for t in self._tracking_tasks}
 
         # create the SVG guidance elements initially these will be shown/hidden when needed
         self.guidance_actuator.__initialise__(tasks=self._tracking_tasks)
@@ -131,10 +144,13 @@ class DefaultGuidanceAgent(GuidanceAgent):
             # is the task in an unacceptable state? (remove if they are acceptable)
             unacceptable = [x[0] for x in unacceptable if not x[1]]
             # is the user looking at the task? (remove if they are)
-            unacceptable = [x for x in unacceptable if not x in gaze_elements]
+            unacceptable = [x for x in unacceptable if x not in gaze_elements]
             # is the grace period over for the task?
-            unacceptable = [x for x in unacceptable if current_time -
-                            self._guidance_last[x] > self._grace_period]
+            unacceptable = [
+                x
+                for x in unacceptable
+                if current_time - self._guidance_last[x] > self._grace_period
+            ]
             if len(unacceptable) > 0:
                 # there are tasks in failure, decide which one to highlight
                 # break ties randomly - this could be more interesting!
@@ -149,14 +165,20 @@ class DefaultGuidanceAgent(GuidanceAgent):
             # randomly break the tie
             return random.choice(tasks)
         elif method == "longest":
-            return max([(x, self._task_unacceptable_start[x]) for x in tasks], key=lambda x: x[1])[0]
+            return max(
+                [(x, self._task_unacceptable_start[x]) for x in tasks],
+                key=lambda x: x[1],
+            )[0]
             # choose the one longest in failure
         elif method == "since":
             # choose the one with with the longest time since guidance was last shown
-            return max([(x, self._guidance_last[x]) for x in tasks], key=lambda x: x[1])[0]
+            return max(
+                [(x, self._guidance_last[x]) for x in tasks], key=lambda x: x[1]
+            )[0]
         else:
             raise ValueError(
-                f"Unknown guidance tie break method: {self._break_ties}, must be one of {DefaultGuidanceAgent.BREAK_TIES}")
+                f"Unknown guidance tie break method: {self._break_ties}, must be one of {DefaultGuidanceAgent.BREAK_TIES}"
+            )
 
     def on_acceptable(self, task: str):
         self._log(task, "acceptable", True)
@@ -183,14 +205,17 @@ class DefaultGuidanceAgent(GuidanceAgent):
     @property
     def guidance_actuator(self) -> GuidanceActuator:
         """The guidance actuator used by this agent."""
-        candidates = list(filter(lambda x: isinstance(
-            x, GuidanceActuator), self.actuators))
+        candidates = list(
+            filter(lambda x: isinstance(x, GuidanceActuator), self.actuators)
+        )
         if len(candidates) == 0:
             raise ValueError(
-                f"Missing required actuator of type: `{GuidanceActuator.__qualname__}`")
+                f"Missing required actuator of type: `{GuidanceActuator.__qualname__}`"
+            )
         if len(candidates) > 1:
             raise ValueError(
-                f"Found multiple actuators of type: `{GuidanceActuator.__qualname__}` ")
+                f"Found multiple actuators of type: `{GuidanceActuator.__qualname__}` "
+            )
         return candidates[0]
 
     def _log(self, task, z, ok):

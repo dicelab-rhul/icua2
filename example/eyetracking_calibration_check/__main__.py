@@ -2,10 +2,10 @@
 
 # os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
 # from pathlib import Path
-# from icua2 import MultiTaskEnvironment
-# from icua2.utils import LOGGER
+# from icua import MultiTaskEnvironment
+# from icua.utils import LOGGER
 
-# # TODO this will be moved to icua2...
+# # TODO this will be moved to icua...
 # from matbii.guidance import GuidanceAgentBase
 
 

@@ -1,21 +1,20 @@
-from typing import Dict, Any, List
 from functools import partial
 from star_ray_xml import select, Select
-from icua2.agent import TaskAcceptabilitySensor
+from icua.agent import TaskAcceptabilitySensor
 
-from .._const import (
-    TASK_ID_RESOURCE_MANAGEMENT, tank_id, tank_level_id
-)
+from .._const import TASK_ID_RESOURCE_MANAGEMENT, tank_id, tank_level_id
 
 
 class ResourceManagementTaskAcceptabilitySensor(TaskAcceptabilitySensor):
-
     def __init__(self, *args, **kwargs):
         super().__init__(TASK_ID_RESOURCE_MANAGEMENT, *args, **kwargs)
         self._is_subtask_acceptable_map = {
-            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-a": partial(self.is_tank_acceptable, "a"),
-            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-b": partial(self.is_tank_acceptable, "b"),
-
+            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-a": partial(
+                self.is_tank_acceptable, "a"
+            ),
+            f"{TASK_ID_RESOURCE_MANAGEMENT}.tank-b": partial(
+                self.is_tank_acceptable, "b"
+            ),
         }
 
     def is_active(self, task: str = None, **kwargs) -> bool:
@@ -28,7 +27,8 @@ class ResourceManagementTaskAcceptabilitySensor(TaskAcceptabilitySensor):
             is_acceptable = self._is_subtask_acceptable_map.get(task, None)
             if is_acceptable is None:
                 raise KeyError(
-                    f"Invalid subtask: {task}, doesn't exist for task {self.task_name}")
+                    f"Invalid subtask: {task}, doesn't exist for task {self.task_name}"
+                )
             else:
                 return is_acceptable()
 
@@ -45,7 +45,7 @@ class ResourceManagementTaskAcceptabilitySensor(TaskAcceptabilitySensor):
             and fuel_level <= acceptable_level + acceptable_range2
         )
 
-    def sense(self) -> List[Select]:
+    def sense(self) -> list[Select]:
         # interested in the fuel levels of the main tanks in the Resource Management Task
         tanks = [tank_id(i) for i in ("a", "b")]
         tank_levels = [tank_level_id(i) for i in ("a", "b")]
@@ -56,8 +56,7 @@ class ResourceManagementTaskAcceptabilitySensor(TaskAcceptabilitySensor):
             for id in tanks
         ]
         tank_level_selects = [
-            select(xpath=f"//*[@id='{id}']",
-                   attrs=["id", "data-level", "data-range"])
+            select(xpath=f"//*[@id='{id}']", attrs=["id", "data-level", "data-range"])
             for id in tank_levels
         ]
         return [*tank_selects, *tank_level_selects]

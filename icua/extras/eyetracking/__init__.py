@@ -1,5 +1,11 @@
+"""Package contains eyetracking related functionality. It supports common eyetracker SDKs and integrates them with the `star_ray` event API.
+
+See:
+    - `EyetrackerBase`: base class for all eyetrackers.
+    - `tobii` package: implementation of `EyetrackerBase` using tobii eyetracking SDK (requires `tobii_research` package).
+"""
+
 from .eyetrackerbase import EyetrackerBase
-from .eyetracker import Eyetracker, EyetrackerWithUI
 from .event import EyeMotionEvent
 from .filter import IVTFilter, NWMAFilter, WindowSpaceFilter
 
@@ -7,9 +13,6 @@ from .filter import IVTFilter, NWMAFilter, WindowSpaceFilter
 from . import tobii
 
 __all__ = (
-    # eyetrackers
-    "Eyetracker",
-    "EyetrackerWithUI",
     # events
     "EyeMotionEvent",
     # filters
