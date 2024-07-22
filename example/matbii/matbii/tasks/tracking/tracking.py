@@ -4,7 +4,7 @@ import time
 from pydantic import field_validator
 
 from star_ray_xml import XMLState, Expr, update, select
-from icua.event import KeyEvent, XMLQuery
+from icua.event import KeyEvent, XMLUpdateQuery
 from icua.utils import LOGGER
 from icua.agent import Actuator, attempt
 
@@ -83,11 +83,11 @@ class TrackingActuator(Actuator):
 
 
 # TODO ??
-class TrackingModeAction(XMLQuery):
+class TrackingModeAction(XMLUpdateQuery):
     manual: bool
 
 
-class TargetMoveAction(XMLQuery):
+class TargetMoveAction(XMLUpdateQuery):
     direction: tuple[float, float]
     speed: float
 
@@ -113,7 +113,7 @@ class TargetMoveAction(XMLQuery):
     def __execute__(self, state: XMLState):
         if self.direction == (0.0, 0.0):
             LOGGER.warning(
-                "Attempted %s with direction (0,0)", TargetMoveAction.__name__
+                f"Attempted {TargetMoveAction.__name__} with direction (0,0)", 
             )
             return
         dx = self.direction[0] * self.speed
@@ -137,3 +137,6 @@ class TargetMoveAction(XMLQuery):
                 attrs=dict(x=new_x, y=new_y),
             )
         )
+    
+   
+

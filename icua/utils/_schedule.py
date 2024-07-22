@@ -25,11 +25,10 @@ class ScheduledAgent(Agent):
     async def __initialise__(self, state):
         self._iter_context = aiostream.stream.merge(*self._schedules).stream()
         self._iter_schedules = await self._iter_context.__aenter__()
-        LOGGER.debug("%s: %s initialised", ScheduledAgent.__name__, self.id)
+        LOGGER.debug(f"{ScheduledAgent.__name__}: {self.id} initialised")
 
     # TODO implement proper execution scheduling in the environment!! we cant have each agent awaiting here blocking each other
     async def __cycle__(self):
-        # TODO implement catch CancelledError! this should stop the iterator and set self._completed = True
         # check if there were any errors from actuators
         for actuator in self.actuators:
             for obs in actuator.iter_observations():
@@ -41,14 +40,15 @@ class ScheduledAgent(Agent):
         try:
             # this will await the next action from the collection of schedules
             await self._iter_schedules.__anext__()
+            # print(len(self._schedules), action)
         except StopAsyncIteration:
             await self._iter_context.__aexit__(None, None, None)
             self._completed = True
-            LOGGER.debug("%s has completed all its scheduled events.", self)
+            LOGGER.debug(f"{self} has completed all its scheduled events.")
         except asyncio.CancelledError:
             await self._iter_context.__aexit__(None, None, None)
             self._completed = True
-            LOGGER.debug("%s was cancelled.", self)
+            LOGGER.debug(f"{self} was cancelled.")
         except Exception as e:
             exc_type, exc_val, exc_tb = sys.exc_info()
             await self._iter_context.__aexit__(exc_type, exc_val, exc_tb)
@@ -84,16 +84,12 @@ class ScheduledAgentFactory:
         parser = ScheduleParser()
         for name, fun in self._functions.items():
             parser.register_function(fun, name=name)
-            LOGGER.debug("registered function: %s", name)
+            LOGGER.debug(f"registered function: {name}")
 
         self._attempts = dict()
         for cls, action in self._get_all_attempt_methods(self._actuator_types):
             parser.register_action(action)
-            LOGGER.debug(
-                "registered attempt: %s@%s",
-                cls.__name__,
-                action.__name__,
-            )
+            LOGGER.debug(f"registered attempt: {cls.__name__}@{action.__name__}")
         try:
             self._parse_result = parser.parse(self._source)
         except Exception as e:

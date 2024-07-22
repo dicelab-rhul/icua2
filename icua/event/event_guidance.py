@@ -54,6 +54,22 @@ class XPathAction(XPathQuery):
             xpath = xpath[:-1]
         return xpath
 
+    @property
+    def is_read(self):  # noqa: D102
+        return False
+
+    @property
+    def is_write(self):  # noqa: D102
+        return True
+
+    @property
+    def is_write_tree(self):  # noqa: D102
+        return True  # possibly
+
+    @property
+    def is_write_element(self):  # noqa: D102
+        return True
+
 
 class DrawElementAction(XPathAction):
     data: dict[str, str]
@@ -293,7 +309,7 @@ class DrawBoxAction(XPathAction):
         box_data.setdefault("stroke", "#ff0000")
         box_data.setdefault("fill", "none")
         box = etree.Element(
-            f"{SVGAmbient.DEFAULT_SVG_NAMESPACES['svg']}rect",
+            f"{{{SVGAmbient.DEFAULT_SVG_NAMESPACES['svg']}}}rect",
             attrib=box_data,
             nsmap=SVGAmbient.DEFAULT_SVG_NAMESPACES,
         )

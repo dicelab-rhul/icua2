@@ -1,7 +1,7 @@
 ####  Resource Management Task Schedule ####
 
 # these determine pump failures
-toggle_pump_failure("fd") @ [uniform(3,10), 2]:*
+# toggle_pump_failure("fd") @ [uniform(3,10), 2]:*
 # toggle_pump_failure("fb") @ [uniform(3,10), 2]:*
 # toggle_pump_failure("db") @ [uniform(3,10), 2]:*
 # toggle_pump_failure("ec") @ [uniform(3,10), 2]:*

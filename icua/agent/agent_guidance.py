@@ -35,12 +35,15 @@ class GuidanceAgent(AgentRouted):
         Args:
             sensors (list[Sensor]): list of sensors, this will typically be a list of `icua.agent.TaskAcceptabilitySensor`s. A `UserInputSensor` will always be added automatically.
             actuators (list[Actuator]): list of actuators, this will typically contain actuators that are capable of providing visual feedback to a user, see e.g. `icua.agent.GuidanceActuator` and its concrete implementations.
-            user_input_events (tuple[type[Event]], optional): additional user input events to subscribe to (see `). Defaults to None.
+            user_input_events (tuple[type[Event]], optional): additional user input events to subscribe to. Defaults to None.
             user_input_events_history_size (int | list[int], optional): _description_. Defaults to 50.
         """
         # this is the guidance agents main sensor, it will sense:
         # user input events (typically) MouseButtonEvent, MouseMotionEvent, KeyEvent
+        user_input_events = user_input_events if user_input_events else []
         user_input_sensor = UserInputSensor(subscribe_to=[*user_input_events])
+        user_input_events = user_input_sensor._subscribe_to
+
         super().__init__([user_input_sensor, *sensors], actuators)
         # agent's beliefs store
         self.beliefs = defaultdict(lambda: None)
@@ -57,6 +60,7 @@ class GuidanceAgent(AgentRouted):
             t: deque(maxlen=hsize)
             for t, hsize in zip(user_input_events, user_input_events_history_size)
         }
+        # add an observe method to capture all user input events (based on the UserInputSensor types)
         self.add_observe(self.on_user_input, self.user_input_types)
 
     def on_acceptable(self, task: str):
@@ -96,9 +100,7 @@ class GuidanceAgent(AgentRouted):
         """The types of user input that this agent is tracking (READ ONLY)."""
         return tuple(self._user_input_events.keys())
 
-    def get_latest_user_input(
-        self, event_type: type, n: int = 1
-    ) -> Iterator[Event] | None:
+    def get_latest_user_input(self, event_type: type, n: int = 1) -> Iterator[Event]:
         """Getter for the lastest user input of a given type.
 
         Args:
@@ -106,12 +108,14 @@ class GuidanceAgent(AgentRouted):
             n (int, optional): the number of events to retrieve. Defaults to 1 (the latest event).
 
         Returns:
-            Iterator[Event] | None: an iterator that contains the requested events or None if no such events exist.
+            Iterator[Event]: an iterator that contains the requested events (may be empty if no such events exist).
         """
         try:
             return islice(self._user_input_events[event_type], 0, n)
         except IndexError:
-            return None
+            return iter([])
+        except KeyError:
+            return iter([])
 
     @observe
     def on_error(
@@ -170,5 +174,6 @@ class GuidanceAgent(AgentRouted):
         Args:
             observation (Any): the observation.
         """
+        # print("USER INPUT:", observation)
         assert isinstance(observation, self.user_input_types)
         self._user_input_events[type(observation)].appendleft(observation)

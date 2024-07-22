@@ -53,7 +53,6 @@ class MultiTaskEnvironment(Environment):
             wait=wait,
             sync=True,
         )
-        # self._agent_scheduler = None
 
     @property
     def ambient(self) -> MultiTaskAmbient:
@@ -185,7 +184,7 @@ class MultiTaskEnvironment(Environment):
         try:
             # TODO check that the agent is alive...
             while self._ambient.is_alive:  # check that the agent is alive...?
-                await asyncio.sleep(self._wait / len(self._ambient.get_agent_count()))
+                await asyncio.sleep(self._wait / self._ambient.get_agent_count())
                 await agent.__sense__(self._ambient)
                 await agent.__cycle__()
                 await agent.__execute__(self._ambient)

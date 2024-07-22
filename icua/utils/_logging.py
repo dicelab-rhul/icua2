@@ -10,18 +10,19 @@ from pathlib import Path
 import os
 import sys
 
-_BASE_DIRECTORY = Path(os.getcwd())
+_CWD_DIRECTORY = Path(os.getcwd())
+_PROJECT_ROOT_DIRECTORY = "C:/Users/brjw/Documents/repos/dicelab"
 
 
 def format_record(record):
     file_path = Path(record["file"].path)
     try:
-        file_path = file_path.relative_to(_BASE_DIRECTORY)
+        file_path = file_path.relative_to(_CWD_DIRECTORY)
     except ValueError:
         pass
 
     # Format the log message
-    return "{level} | {file}:{line} - {message}".format(
+    return "{level} | {file}:{line} | {message}\n".format(
         # time=record["time"].strftime("%H:%M:%S"),
         level=record["level"].name,
         file=str(file_path),
@@ -32,12 +33,21 @@ def format_record(record):
 
 # Configure the logger
 LOGGER = _logger.bind(package="icua")
-LOGGER.remove()
-LOGGER.add(
-    sink=sys.stdout,
-    format=format_record,
-    level="DEBUG",
-)
+
+
+def set_level(level: str):
+    LOGGER.remove()
+    LOGGER.add(
+        sink=sys.stdout,
+        format=format_record,
+        level=level,
+    )
+
+
+LOGGER.set_level = set_level
+
+# default level
+LOGGER.set_level("DEBUG")
 
 __all__ = ("LOGGER",)
 

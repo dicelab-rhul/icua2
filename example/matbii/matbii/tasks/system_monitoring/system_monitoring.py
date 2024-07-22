@@ -6,7 +6,7 @@ from pydantic import Field, field_validator
 
 
 from icua.agent import agent_actuator, attempt, Actuator
-from icua.event import XMLQuery, MouseButtonEvent
+from icua.event import XMLUpdateQuery, MouseButtonEvent
 
 from star_ray_xml import (
     XMLState,
@@ -96,7 +96,7 @@ def ResetSliderAction(target: int) -> "SetSliderAction":
     return SetSliderAction(target=target, state=None, relative=False)
 
 
-class SetSliderAction(XMLQuery):
+class SetSliderAction(XMLUpdateQuery):
     target: int  # slider to target
     state: (
         int | None
@@ -159,7 +159,7 @@ class SetSliderAction(XMLQuery):
         )
 
 
-class SetLightAction(XMLQuery):
+class SetLightAction(XMLUpdateQuery):
     target: int
     state: int
 
@@ -207,7 +207,7 @@ class SetLightAction(XMLQuery):
         )
 
 
-class ToggleLightAction(XMLQuery):
+class ToggleLightAction(XMLUpdateQuery):
     target: int
 
     @field_validator("target", mode="before")

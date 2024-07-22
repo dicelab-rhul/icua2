@@ -9,7 +9,7 @@ from icua.event import (
 )
 
 from icua.extras.eyetracking import (
-    EyetrackerWithUI,
+    EyetrackerBase,
     EyeMotionEvent,
     WindowSpaceFilter,
     NWMAFilter,
@@ -23,7 +23,7 @@ class Avatar(PygameAvatar):
         self,
         sensors: list[Sensor],
         actuators: list[Actuator],
-        eyetracker: EyetrackerWithUI = None,
+        eyetracker: EyetrackerBase = None,
         window_config: WindowConfiguration = None,
         **kwargs,
     ):
@@ -94,29 +94,29 @@ class Avatar(PygameAvatar):
         Returns:
             EyetrackerWithUI: the eyetracker.
         """
-        assert throttle_events < 0  # TODO this is not implemented yet
-        nan = (float("nan"), float("nan"))
-        # create filters
-        maf = NWMAFilter(n=moving_average_n)
-        ivf = IVTFilter(velocity_threshold=velocity_threshold)
-        # this filter will be set up fully (screen/window position/size) when the eyetracker is started!
-        wsf = WindowSpaceFilter(nan, nan, nan)
-        # TODO try some other eyetrackers providers? when they are implemented in icua
-        from icua.extras.eyetracking.tobii import (
-            TobiiEyetracker,
-            TOBII_RESEACH_SDK_AVALIABLE,
-        )
+        # assert throttle_events < 0  # TODO this is not implemented yet
+        # nan = (float("nan"), float("nan"))
+        # # create filters
+        # maf = NWMAFilter(n=moving_average_n)
+        # ivf = IVTFilter(velocity_threshold=velocity_threshold)
+        # # this filter will be set up fully (screen/window position/size) when the eyetracker is started!
+        # wsf = WindowSpaceFilter(nan, nan, nan)
+        # # TODO try some other eyetrackers providers? when they are implemented in icua
+        # from icua.extras.eyetracking.tobii import (
+        #     TobiiEyetracker,
+        #     TOBII_RESEACH_SDK_AVALIABLE,
+        # )
 
-        if not TOBII_RESEACH_SDK_AVALIABLE:
-            raise ValueError(
-                "Failed to create tobii eyetracker, tobii research sdk is not avalible on this system.\nTry installing it with `pip install tobii-research`, or add the optional extra `pip install matbii[tobii]`"
-            )
-        eyetracker_base = TobiiEyetracker(
-            uri=eyetracker_base_uri, filters=[maf, ivf, wsf]
-        )
+        # if not TOBII_RESEACH_SDK_AVALIABLE:
+        #     raise ValueError(
+        #         "Failed to create tobii eyetracker, tobii research sdk is not avalible on this system.\nTry installing it with `pip install tobii-research`, or add the optional extra `pip install matbii[tobii]`"
+        #     )
+        # eyetracker_base = TobiiEyetracker(
+        #     uri=eyetracker_base_uri, filters=[maf, ivf, wsf]
+        # )
 
-        def _eyemotioneventfactory(data):
-            # TODO we need to convert this to svg space!
-            return EyeMotionEvent(**data)
+        # def _eyemotioneventfactory(data):
+        #     # TODO we need to convert this to svg space!
+        #     return EyeMotionEvent(**data)
 
-        return EyetrackerWithUI(eyetracker_base, _eyemotioneventfactory, nan, nan, nan)
+        # return EyetrackerWithUI(eyetracker_base, _eyemotioneventfactory, nan, nan, nan)

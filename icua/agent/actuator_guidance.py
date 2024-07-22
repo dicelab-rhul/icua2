@@ -34,32 +34,24 @@ class BoxGuidanceActuator(GuidanceActuator):
 
     def __init__(
         self,
-        tasks: list[str],
         box_stroke_color: str = "#ff0000",
         box_stroke_width: float = 4.0,
     ):
         """Constructor.
 
         Args:
-            tasks (list[str]): tasks that the agent may wish to highlight
             box_stroke_color (str, optional): color of the box. Defaults to "#ff0000".
             box_stroke_width (float, optional): width of the box outline. Defaults to 4.0.
         """
         super().__init__()
-        self._tasks = tasks
         self._box_stroke_color = box_stroke_color
         self._box_stroke_width = box_stroke_width
         self._guidance_box_id_template = "guidance_box_%s"
+        # ids of each of the guidance boxes that have been created TODO this should be removed when `on_remove` is called!
+        self._guidance_boxes = set()
 
-    def on_add(self, agent: Agent) -> None:  # noqa
-        super().on_add(agent)
-        for task in self._tasks:
-            box_data = {
-                "stroke-width": self._box_stroke_width,
-                "stroke": self._box_stroke_color,
-            }
-            # draw the box but it is hidden (opacity=0)
-            self.draw_guidance_box_on_element(task, opacity=0.0, **box_data)
+    def on_remove(self, agent: Agent) -> None:  # noqa
+        return super().on_remove(agent)  # TODO remove all guidance boxes!
 
     @attempt()
     def draw_guidance_box_on_element(
@@ -92,10 +84,23 @@ class BoxGuidanceActuator(GuidanceActuator):
         """
         self._guidance_on = task
         guidance_box_id = self._guidance_box_id_template % task
+
         actions = [
             ShowGuidance(task=task),
-            ShowElementAction(xpath=f"//*[@id='{guidance_box_id}']"),
         ]
+
+        if guidance_box_id not in self._guidance_boxes:
+            # first time! insert the guidance box
+            self._guidance_boxes.add(guidance_box_id)
+            box_data = {
+                "stroke-width": self._box_stroke_width,
+                "stroke": self._box_stroke_color,
+            }
+            # draw the box but it is hidden (opacity=0)
+            actions.append(
+                self.draw_guidance_box_on_element(task, opacity=0.0, **box_data)
+            )
+        actions.append(ShowElementAction(xpath=f"//*[@id='{guidance_box_id}']"))
         return actions
 
     @attempt()
@@ -110,10 +115,23 @@ class BoxGuidanceActuator(GuidanceActuator):
         """
         self._guidance_on = None
         guidance_box_id = self._guidance_box_id_template % task
+
         actions = [
-            HideGuidance(task=task),
-            HideElementAction(xpath=f"//*[@id='{guidance_box_id}']"),
+            ShowGuidance(task=task),
         ]
+
+        if guidance_box_id not in self._guidance_boxes:
+            # first time! insert the guidance box
+            self._guidance_boxes.add(guidance_box_id)
+            box_data = {
+                "stroke-width": self._box_stroke_width,
+                "stroke": self._box_stroke_color,
+            }
+            # draw the box but it is hidden (opacity=0)
+            actions.append(
+                self.draw_guidance_box_on_element(task, opacity=0.0, **box_data)
+            )
+        actions.append(HideElementAction(xpath=f"//*[@id='{guidance_box_id}']"))
         return actions
 
 

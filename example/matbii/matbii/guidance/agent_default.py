@@ -5,14 +5,16 @@ from star_ray.agent import Actuator, Sensor, observe
 from icua.event import USER_INPUT_TYPES, MouseMotionEvent, EyeMotionEvent
 from icua.agent import (
     GuidanceActuator,
-    DefaultGuidanceActuator,
+    ArrowGuidanceActuator, 
+    BoxGuidanceActuator,
     TaskAcceptabilitySensor,
 )
 from icua.utils import LOGGER
 from star_ray.environment import State  # type hint
 from .agent_base import GuidanceAgent
 
-__all__ = ("DefaultGuidanceAgent", "DefaultGuidanceActuator")
+__all__ = ("DefaultGuidanceAgent", "DefaultGuidanceActuator", "ArrowGuidanceActuator", 
+    "BoxGuidanceActuator")
 
 
 class DefaultGuidanceAgent(GuidanceAgent):
@@ -30,11 +32,8 @@ class DefaultGuidanceAgent(GuidanceAgent):
     ):
         super().__init__(
             sensors,
-            actuators,
-            user_input_events=USER_INPUT_TYPES,
-            user_input_events_history_size=kwargs.get(
-                "user_input_events_history_size", 100
-            ),
+            actuators, 
+            **kwargs
         )
 
         # this agent is tracking the following tasks (based on the provided sensors)
@@ -79,9 +78,6 @@ class DefaultGuidanceAgent(GuidanceAgent):
         # initialise time to last guidance shown
         self._guidance_last = {t: start_time for t in self._tracking_tasks}
 
-        # create the SVG guidance elements initially these will be shown/hidden when needed
-        self.guidance_actuator.__initialise__(tasks=self._tracking_tasks)
-
     def show_guidance(self, task: str):
         """Show guidance for a given task.
 
@@ -91,7 +87,8 @@ class DefaultGuidanceAgent(GuidanceAgent):
             task (str): the task to show guidance for.
         """
         self._guidance_on_task = task
-        self.guidance_actuator.show_guidance(task=task)
+        for actuator in self.guidance_actuators:
+            actuator.show_guidance(task=task)
 
     def hide_guidance(self, task: str):
         """Hide guidance for a given task.
@@ -103,7 +100,8 @@ class DefaultGuidanceAgent(GuidanceAgent):
         """
         # TODO trigger event here! this will be used in post analysis, ensure that counterfactual guidance is also a thing!
         self._guidance_on_task = None
-        self.guidance_actuator.hide_guidance(task=task)
+        for actuator in self.guidance_actuators:
+            actuator.hide_guidance(task=task)
         # update the last time guidance was shown for the given task (for the grace period check)
         self._guidance_last[task] = time.time()
 
@@ -198,12 +196,12 @@ class DefaultGuidanceAgent(GuidanceAgent):
 
     @observe([EyeMotionEvent, MouseMotionEvent])
     def _on_motion_event(self, event: MouseMotionEvent | EyeMotionEvent):
-        """It may be useful to the actuators to get these events (see e.g. `DefaultGuidanceActuator`)"""
+        """It may be useful to the actuators to get these events."""
         # TODO we may need to guard against actuators executing these actions...
         self.attempt(event)
 
     @property
-    def guidance_actuator(self) -> GuidanceActuator:
+    def guidance_actuators(self) -> list[GuidanceActuator]:
         """The guidance actuator used by this agent."""
         candidates = list(
             filter(lambda x: isinstance(x, GuidanceActuator), self.actuators)
@@ -212,11 +210,9 @@ class DefaultGuidanceAgent(GuidanceAgent):
             raise ValueError(
                 f"Missing required actuator of type: `{GuidanceActuator.__qualname__}`"
             )
-        if len(candidates) > 1:
-            raise ValueError(
-                f"Found multiple actuators of type: `{GuidanceActuator.__qualname__}` "
-            )
-        return candidates[0]
+        return candidates
+       
 
     def _log(self, task, z, ok):
-        LOGGER.info("task %20s %20s %s", z, task, ["✘", "✔"][int(ok)])
+        info = "task %20s %20s %s" % (z, task, ["✘", "✔"][int(ok)])
+        LOGGER.info(info)

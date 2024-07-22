@@ -127,7 +127,7 @@ class TaskLoader:
             path = [TaskLoader._path_normalise(path)]
         elif isinstance(path, list | tuple):
             path = [TaskLoader._path_normalise(p) for p in path]
-        LOGGER.debug("Registering task: `%s` at path(s): `%s`", name, [p for p in path])
+        LOGGER.debug(f"Registering task: `{name}` at path(s): `{[p for p in path]}`")
         self._template_loader.add_namespace(name, path)
 
     def load(
@@ -168,7 +168,7 @@ class TaskLoader:
         schedule_path = files.get(EXT_SCHEDULE, None)
         if schedule_path:
             # TODO it would be nice if this could give the full path, its may be useful to see exactly which file is being loaded
-            LOGGER.debug("loading schedule: `%s`", schedule_path.name)
+            LOGGER.debug(f"loading schedule: {schedule_path.name}")
             # TODO perhaps we shouldnt load as a template... just load as text?
             # the templating syntax might interfere with things?
             source = self._jinja_env.get_template(schedule_path.as_posix()).render()
@@ -189,10 +189,10 @@ class TaskLoader:
         state_path, context_path, schema_path = None, None, None
         if EXT_SVG in files:
             state_path = files[EXT_SVG]
-            LOGGER.debug("loading state: `%s`", state_path.name)
+            LOGGER.debug(f"loading state: `{state_path.name}`")
         elif EXT_SVG_TEMPLATE in files:
             state_path = files[EXT_SVG_TEMPLATE]
-            LOGGER.debug("loading state: `%s` ", state_path.name)
+            LOGGER.debug(f"loading state: `{ state_path.name}` ")
             has_schema = EXT_SCHEMA in files
             has_context = EXT_CONTEXT in files
             if not has_context and not has_schema:
@@ -201,18 +201,19 @@ class TaskLoader:
                 )
             elif not has_schema:
                 LOGGER.warning(
-                    "validation schema: `%s%s` is missing from task template: `%s`",
-                    task_name,
-                    EXT_SCHEMA,
-                    state_path.name,
+                    f"validation schema: `{task_name}{EXT_SCHEMA}` is missing from task template: `{state_path.name}`",
                 )
 
             if has_schema:
                 schema_path = files[EXT_SCHEMA]
-                LOGGER.debug("with validator schema: `%s`", schema_path.name)
+                LOGGER.debug(
+                    f"with validator schema: `{schema_path.name}`",
+                )
             if has_context:
                 context_path = files[EXT_CONTEXT]
-                LOGGER.debug("with context: `%s`", context_path.name)
+                LOGGER.debug(
+                    f"with context: `{context_path.name}`",
+                )
         else:
             raise TaskConfigurationError(
                 f"State file: `{task_name}{EXT_SVG}(.jinja)` is missing for task: `{task_name}`."
@@ -377,7 +378,7 @@ def load_task_package_from_path(
         # load modules individually
         classes = []
         for file in files:
-            LOGGER.debug("  loading task plugin: `%s`", file.name)
+            LOGGER.debug(f"loading task plugin: `{file.name}`")
             classes.extend(_get_classes_from_file(file, f"{module_name}"))
         actuator_classes = _get_actuator_classes(
             classes, suppress_warnings=suppress_warnings

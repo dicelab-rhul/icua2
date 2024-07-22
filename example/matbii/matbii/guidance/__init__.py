@@ -1,5 +1,5 @@
 from .agent_base import GuidanceAgent
-from .agent_default import DefaultGuidanceAgent, DefaultGuidanceActuator
+from .agent_default import DefaultGuidanceAgent, ArrowGuidanceActuator, BoxGuidanceActuator
 from .sensor_system_monitoring import SystemMonitoringTaskAcceptabilitySensor
 from .sensor_tracking import TrackingTaskAcceptabilitySensor
 from .sensor_resource_management import ResourceManagementTaskAcceptabilitySensor
@@ -8,7 +8,8 @@ from .sensor_resource_management import ResourceManagementTaskAcceptabilitySenso
 __all__ = (
     "GuidanceAgent",
     "DefaultGuidanceAgent",
-    "DefaultGuidanceActuator",
+    "ArrowGuidanceActuator", 
+    "BoxGuidanceActuator",
     "SystemMonitoringTaskAcceptabilitySensor",
     "TrackingTaskAcceptabilitySensor",
     "ResourceManagementTaskAcceptabilitySensor",

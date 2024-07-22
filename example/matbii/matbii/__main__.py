@@ -1,6 +1,7 @@
 from matbii.guidance import (
     DefaultGuidanceAgent,
-    DefaultGuidanceActuator,
+    ArrowGuidanceActuator, 
+    BoxGuidanceActuator,
     SystemMonitoringTaskAcceptabilitySensor,
     TrackingTaskAcceptabilitySensor,
     ResourceManagementTaskAcceptabilitySensor,
@@ -21,7 +22,7 @@ from matbii import (
     CONFIG_PATH,
 )
 from matbii.agent import Avatar
-from icua import MultiTaskEnvironment
+from icua.environment import MultiTaskEnvironment
 
 from icua.utils import LOGGER
 from star_ray.ui import WindowConfiguration
@@ -30,9 +31,10 @@ from pathlib import Path
 import argparse
 import os
 from pprint import pformat
-from logging import INFO, DEBUG
 
-LOGGING_LEVELS = {"debug": DEBUG, "info": INFO}
+from star_ray.utils import _LOGGER
+_LOGGER.setLevel("INFO")
+#LOGGER.set_level("INFO")
 
 # avoid a pygame issue on linux...
 os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
@@ -48,14 +50,13 @@ parser.add_argument(
 )
 args = parser.parse_args()
 config = ValidatedEnvironment.load_and_validate_context(str(CONFIG_PATH), args.config)
-LOGGER.setLevel(LOGGING_LEVELS[config["logging_level"]])
 
 
 if args.config:
-    LOGGER.debug("Using config file: %s", args.config)
+    LOGGER.debug(f"Using config file: {str(args.config)}")
 else:
     LOGGER.debug("No config file was specified, using default configuration.")
-LOGGER.debug("Configuration:\n%s", pformat(config, indent=0)[1:-1])
+
 
 
 window_config = WindowConfiguration(
@@ -81,26 +82,25 @@ experiment_config = config["experiment_info"]
 experiment_id = experiment_config["id"]
 experiment_duration = experiment_config["duration"]
 
-experiment_path = str(Path(experiment_config["path"]).expanduser().resolve())
-
-
-if not Path(experiment_path).exists():
-    raise ValueError(f"Experiment path: {experiment_path} does not exist.")
+experiment_path = Path(experiment_config["path"]).expanduser().resolve()
+if not experiment_path.exists():
+    raise ValueError(f"Experiment path: {experiment_path.as_posix()} does not exist.")
+experiment_path = experiment_path.as_posix()
 
 participant_config = config["participant_info"]
 participant_id = participant_config["id"]
 
-LOGGER.info(
-    "------------------------------------------------------------------------------------------"
-)
-LOGGER.info("%25s %s", "Experiment :", experiment_id)
-LOGGER.info("%25s %s", "Experiment path :", experiment_path)
-LOGGER.info("%25s %s", "Participant :", participant_id)
-LOGGER.info("%25s %s", "Eyetracking enabled :", eyetracking_config["enabled"])
-LOGGER.info("%25s %s", "Tasks enabled :", config["enable_tasks"])
-LOGGER.info(
-    "------------------------------------------------------------------------------------------"
-)
+# LOGGER.info(
+#     "------------------------------------------------------------------------------------------"
+# )
+# LOGGER.info("%25s %s", "Experiment :", experiment_id)
+# LOGGER.info("%25s %s", "Experiment path :", experiment_path)
+# LOGGER.info("%25s %s", "Participant :", participant_id)
+# LOGGER.info("%25s %s", "Eyetracking enabled :", eyetracking_config["enabled"])
+# LOGGER.info("%25s %s", "Tasks enabled :", config["enable_tasks"])
+# LOGGER.info(
+#     "------------------------------------------------------------------------------------------"
+# )
 
 avatar = Avatar(
     [],  # relevant sensors are added by default
@@ -119,14 +119,14 @@ guidance_agent = DefaultGuidanceAgent(
         ResourceManagementTaskAcceptabilitySensor(),
         TrackingTaskAcceptabilitySensor(),
     ],
-    # change this actuator for different guidance to be shown (must inherit from GuidanceActuator)
-    [DefaultGuidanceActuator(arrow_mode="mouse")],
+    # change actuators for different guidance to be shown (must inherit from GuidanceActuator)
+    [ArrowGuidanceActuator(arrow_mode="mouse"), BoxGuidanceActuator()],
 )
 
 env = MultiTaskEnvironment(
     avatar=avatar,
     agents=[guidance_agent],
-    wait=0.05,
+    wait=0.3,
     svg_size=config["canvas_size"],
     svg_position=config["canvas_offset"],
     logging_path=config["logging_path"],

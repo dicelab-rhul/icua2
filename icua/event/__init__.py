@@ -11,7 +11,16 @@ from star_ray_pygame.event import (
     WindowResizeEvent,
 )
 
-from star_ray_xml import XMLQuery, XPathQuery, Select, Update, Replace, Insert, Delete
+from star_ray_xml import (
+    XMLQuery,
+    XMLUpdateQuery,
+    XPathQuery,
+    Select,
+    Update,
+    Replace,
+    Insert,
+    Delete,
+)
 
 from .event_task import EnableTask, DisableTask
 
@@ -72,6 +81,7 @@ __all__ = (
     "WindowResizeEvent",
     # xml/svg events
     "XMLQuery",
+    "XMLUpdateQuery",
     "XPathQuery",
     "Update",
     "Select",

@@ -3,10 +3,11 @@ from typing import ClassVar
 from pydantic import field_validator
 from functools import partial
 from star_ray_xml import update, select, XMLState, Expr
+from star_ray_xml.query import XMLUpdateQuery
 
-from icua.event import XMLQuery, MouseButtonEvent
+from icua.event import MouseButtonEvent
 from icua.agent import attempt, Actuator
-
+import time
 
 TANK_IDS = list("abcdef")
 TANK_MAIN_IDS = list("ab")
@@ -53,11 +54,13 @@ class AvatarResourceManagementActuator(Actuator):
 class ResourceManagementActuator(Actuator):
     @attempt
     def burn_fuel(self, target: int | str, burn: float):
+        #print("burn", target, time.time())
         """Burns a given amount of fuel in the target tank."""
         return BurnFuelAction(target=target, burn=burn)
 
     @attempt
     def pump_fuel(self, target: int | str, flow: float):
+        #print("?????", target, time.time())
         """Pumps a given amount of fuel to/from the given tanks."""
         return PumpFuelAction(target=target, flow=flow)
 
@@ -72,7 +75,7 @@ class ResourceManagementActuator(Actuator):
         return TogglePumpAction(target=target)
 
 
-class PumpAction(XMLQuery):
+class PumpAction(XMLUpdateQuery):
     target: str
 
     OFF: ClassVar[int] = 0
@@ -222,7 +225,7 @@ class PumpFuelAction(PumpAction):
         return data_state == PumpAction.ON
 
 
-class BurnFuelAction(XMLQuery):
+class BurnFuelAction(XMLUpdateQuery):
     target: str
     burn: float
 
@@ -239,6 +242,7 @@ class BurnFuelAction(XMLQuery):
         )
 
     def __execute__(self, xml_state: XMLState):
+        #print("---", time.time())
         targets = self.get_targets()
         for target in targets:
             values = _get_tank_data(xml_state, target)

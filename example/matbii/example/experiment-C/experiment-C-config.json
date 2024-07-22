@@ -6,7 +6,7 @@
     ],
     "experiment_info": {
         "id": "experiment-C",
-        "path": "C:/Users/brjw/Documents/repos/icua/example/matbii/example/experiment-C",
+        "path": "C:/Users/brjw/Documents/repos/dicelab/icua/example/matbii/example/experiment-C",
         "duration": 30,
         "meta": {
             "description": "<description of experiment>"

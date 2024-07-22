@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-ICUA2_VERSION = "0.0.2"
+ICUA2_VERSION = "2.0.2"
 setup(
     name="matbii",
     version="0.0.2",
@@ -16,12 +16,6 @@ setup(
         "tobii": [f"icua[tobii]=={ICUA2_VERSION}"],
     },
     python_requires=">=3.10",
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Programming Language :: Python :: 3.10",
-    ],
     package_data={
         "matbii.tasks": ["**/*.sch", "**/*.schema.json", "**/*.svg.jinja"],
     },
