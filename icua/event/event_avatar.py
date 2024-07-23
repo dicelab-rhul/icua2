@@ -1,3 +1,5 @@
+"""Module containing events that may be useful for an avatar or for event logging."""
+
 from star_ray.event import Event
 
 

@@ -29,10 +29,6 @@ testpaths = ["test/"]
 python_files = "*/test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-markers = [
-  "webtest: mark a test as a webtest.",
-  "slow: mark tests as slow (deselect with '-m \"not slow\"')."
-]
 filterwarnings = [
   "ignore::DeprecationWarning:pydantic",
   "ignore::DeprecationWarning:pygame",
