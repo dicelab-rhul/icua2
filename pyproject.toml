@@ -1,11 +1,21 @@
 [project]
 name = "icua"
-version = "2.0.3"
+version = "2.0.4"
 description = "Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance."
 authors = [{name = "Benedict Wilkins", email = "benrjw@gmail.com"}]
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "star_ray[xml,pygame]>=0.0.6",
+    "pyfuncschedule>=0.1.0",
+    "aiostream>=0.6.1",
+    "loguru>=0.7.2",
+]
+
+[project.optional-dependencies]
+tobii = ["tobii_research>=1.11.0"]
+dev = ["pytest>=6.2.4"]
 
 [project.urls]
 Repository = "https://github.com/dicelab-rhul/icua"
@@ -13,14 +23,6 @@ Repository = "https://github.com/dicelab-rhul/icua"
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
-
-[tool.poetry.dependencies]
-star_ray =  { version = ">=0.0.5", extras = ["xml", "pygame"] }
-pyfuncschedule = ">=0.1.0"
-aiostream = ">=0.6.1"
-
-[tool.poetry.extras]
-tobii = ["tobii_research>=1.11.0"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -34,6 +36,8 @@ filterwarnings = [
   "ignore::DeprecationWarning:pygame",
   "ignore::DeprecationWarning:cerberus",
 ]
+
+
 
 
 
