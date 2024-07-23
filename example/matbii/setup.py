@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
-ICUA2_VERSION = "2.0.2"
+ICUA2_VERSION = "2.0.4"
 setup(
     name="matbii",
-    version="0.0.2",
+    version="0.0.3",
     author="Benedict Wilkins",
     author_email="benrjw@gmail.com",
     description="A configurable implementation of the MATB-II: Multi-Attribute Task Battery.",
