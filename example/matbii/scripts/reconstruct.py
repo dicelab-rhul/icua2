@@ -126,7 +126,7 @@ async def main(file_path):
             running = True
             while running:
                 await asyncio.sleep(1 / 20)
-                events = view.get_events()
+                events = view.get_nowait()
                 for event in events:
                     if isinstance(event, WindowCloseEvent):
                         running = False

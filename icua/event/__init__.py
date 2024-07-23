@@ -9,6 +9,7 @@ from star_ray_pygame.event import (
     WindowFocusEvent,
     WindowMoveEvent,
     WindowResizeEvent,
+    ScreenSizeEvent,
 )
 
 from star_ray_xml import (
@@ -38,10 +39,11 @@ from .event_guidance import (
 from .event_avatar import RenderEvent
 
 # TODO try-except this?
-from ..extras.eyetracking import EyeMotionEvent
+from ..extras.eyetracking import EyeMotionEvent, EyeMotionEventRaw
 
 USER_INPUT_TYPES: tuple[type] = (
     EyeMotionEvent,
+    EyeMotionEventRaw,
     MouseMotionEvent,
     MouseButtonEvent,
     KeyEvent,
@@ -50,6 +52,7 @@ USER_INPUT_TYPES: tuple[type] = (
     WindowFocusEvent,
     WindowMoveEvent,
     WindowResizeEvent,
+    ScreenSizeEvent,
 )
 
 UserInputEvent = (
@@ -61,7 +64,9 @@ UserInputEvent = (
     | WindowFocusEvent
     | WindowMoveEvent
     | WindowResizeEvent
+    | ScreenSizeEvent
     | EyeMotionEvent
+    | EyeMotionEventRaw
 )
 
 
@@ -71,6 +76,7 @@ __all__ = (
     "MouseEvent",
     "WindowEvent",
     "EyeMotionEvent",
+    "EyeMotionEventRaw",
     "MouseButtonEvent",
     "MouseMotionEvent",
     "KeyEvent",
@@ -79,6 +85,7 @@ __all__ = (
     "WindowMoveEvent",
     "WindowOpenEvent",
     "WindowResizeEvent",
+    "ScreenSizeEvent",
     # xml/svg events
     "XMLQuery",
     "XMLUpdateQuery",

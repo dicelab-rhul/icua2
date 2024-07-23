@@ -222,6 +222,7 @@ class ArrowGuidanceActuator(GuidanceActuator):
     @attempt([EyeMotionEvent])
     def set_gaze_position(self, action: EyeMotionEvent) -> None:
         """Sets the users current gaze position. This may be used as a position for arrow display."""
+        print(action)
         self._gaze_position = action.position
 
     @attempt([MouseMotionEvent])

@@ -37,6 +37,7 @@ from .actuator_guidance import (
     BoxGuidanceActuator,
 )
 from .actuator_avatar import AvatarActuator
+from .avatar import Avatar
 
 __all__ = (
     # decorators
@@ -67,4 +68,5 @@ __all__ = (
     "TaskAcceptabilityObservation",
     # agents
     "GuidanceAgent",
+    "Avatar",
 )

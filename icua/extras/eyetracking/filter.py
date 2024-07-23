@@ -110,7 +110,8 @@ class WindowSpaceFilter:
             return data
 
         position_screen = (x, y)
-        assert 0 <= x <= 1 and 0 <= y <= 1.0
+        if not (0 <= x <= 1 and 0 <= y <= 1.0):
+            raise ValueError("Expected eyetracking coordinates in the range [0-1].")
         x *= self.screen_size[0]
         y *= self.screen_size[1]
         x -= self.window_position[0]

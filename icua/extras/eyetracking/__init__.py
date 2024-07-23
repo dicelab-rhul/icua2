@@ -6,8 +6,9 @@ See:
 """
 
 from .eyetrackerbase import EyetrackerBase
-from .event import EyeMotionEvent
+from .event import EyeMotionEvent, EyeMotionEventRaw
 from .filter import IVTFilter, NWMAFilter, WindowSpaceFilter
+from .sensor import EyetrackerIOSensor
 
 # requires extra "tobii"
 from . import tobii
@@ -15,6 +16,8 @@ from . import tobii
 __all__ = (
     # events
     "EyeMotionEvent",
+    "EyeMotionEventRaw",
+    "EyetrackerIOSensor",
     # filters
     "IVTFilter",
     "NWMAFilter",

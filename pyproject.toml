@@ -1,6 +1,6 @@
 [project]
 name = "icua"
-version = "2.0.2"
+version = "2.0.3"
 description = "Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance."
 authors = [{name = "Benedict Wilkins", email = "benrjw@gmail.com"}]
 license = { file = "LICENSE" }
@@ -15,12 +15,12 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.poetry.dependencies]
-star_ray =  { version = ">=0.0.4", extras = ["xml", "pygame"] }
+star_ray =  { version = ">=0.0.5", extras = ["xml", "pygame"] }
 pyfuncschedule = ">=0.1.0"
 aiostream = ">=0.6.1"
 
 [tool.poetry.extras]
-tobii = ["tobii_research"]
+tobii = ["tobii_research>=1.11.0"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -108,6 +108,8 @@ class DefaultGuidanceAgent(GuidanceAgent):
     def __cycle__(self):
         super().__cycle__()
         gaze_elements, gaze = self.mouse_at_elements, self.mouse_position
+        gaze_elements, gaze = self.gaze_at_elements, self.gaze_position
+        # TODO gaze_elements can be none? hmm
         if gaze is None:
             pass  # might be an issue with the eyetracker... or it may be loading up
 

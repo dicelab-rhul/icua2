@@ -8,6 +8,19 @@ from star_ray.event import Event, ActiveObservation, ErrorActiveObservation
 from star_ray_xml import Insert, Select
 from star_ray_pygame import SVGAmbient
 
+from ..event import (
+    EyeMotionEvent,
+    EyeMotionEventRaw,
+    MouseButtonEvent,
+    MouseMotionEvent,
+    KeyEvent,
+    WindowCloseEvent,
+    WindowOpenEvent,
+    WindowFocusEvent,
+    WindowMoveEvent,
+    WindowResizeEvent,
+    ScreenSizeEvent,
+)
 from ..event import EnableTask, DisableTask, RenderEvent, ShowGuidance, HideGuidance
 from ..utils import TaskLoader, Task
 from ..utils._logging import EventLogger
@@ -151,6 +164,22 @@ class MultiTaskAmbient(SVGAmbient):
             return None
         else:
             return super().__update__(action)
+
+    def on_user_input_event(  # noqa
+        self,
+        action: EyeMotionEvent
+        | EyeMotionEventRaw
+        | MouseButtonEvent
+        | MouseMotionEvent
+        | KeyEvent
+        | WindowCloseEvent
+        | WindowOpenEvent
+        | WindowFocusEvent
+        | WindowMoveEvent
+        | WindowResizeEvent
+        | ScreenSizeEvent,
+    ):
+        return super().on_user_input_event(action)
 
     def is_task_enabled(self, task_name: str) -> bool:
         """Is the given task enabled? Specially, is the task element part of the state? This will search for an element with `id` equal to the name of the task.

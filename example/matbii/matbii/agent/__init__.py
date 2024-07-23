@@ -1,3 +1,3 @@
-from .avatar import Avatar
+# from .avatar import Avatar
 
-__all__ = ("Avatar",)
+# __all__ = ("Avatar",)

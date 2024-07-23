@@ -21,10 +21,10 @@ from matbii import (
     TASK_ID_SYSTEM_MONITORING,
     CONFIG_PATH,
 )
-from matbii.agent import Avatar
+from icua.agent import Avatar, AvatarActuator
 from icua.environment import MultiTaskEnvironment
-
 from icua.utils import LOGGER
+from icua.extras.eyetracking import EyetrackerIOSensor, tobii
 from star_ray.ui import WindowConfiguration
 from star_ray.utils import ValidatedEnvironment
 from pathlib import Path
@@ -102,14 +102,13 @@ participant_id = participant_config["id"]
 #     "------------------------------------------------------------------------------------------"
 # )
 
+eyetracker = tobii.TobiiEyetracker(uri="tet-tcp://172.28.195.1")
+window_config = WindowConfiguration(width=1200, height=800)
+eyetracker_sensor = EyetrackerIOSensor(eyetracker)
+
 avatar = Avatar(
-    [],  # relevant sensors are added by default
-    [],  # relevent actuators are added when the corresponding task is enabled
-    # eyetracker=(
-    #     Avatar.get_default_eyetracker(**eyetracking_config)
-    #     if eyetracking_config["enabled"]
-    #     else None
-    # ),
+    [eyetracker_sensor],  # relevant sensors are added by default
+    [AvatarActuator()],  # task actuators are added when the corresponding task is enabled
     window_config=window_config,
 )
 
@@ -120,7 +119,7 @@ guidance_agent = DefaultGuidanceAgent(
         TrackingTaskAcceptabilitySensor(),
     ],
     # change actuators for different guidance to be shown (must inherit from GuidanceActuator)
-    [ArrowGuidanceActuator(arrow_mode="mouse"), BoxGuidanceActuator()],
+    [ArrowGuidanceActuator(arrow_mode="gaze"), BoxGuidanceActuator()],
 )
 
 env = MultiTaskEnvironment(

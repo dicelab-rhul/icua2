@@ -1,12 +1,12 @@
 """Bridge between the Tobii (pro) eyetracking API and the `icua` eyetracking API."""
 
 import time
-import asyncio
 import traceback
+from queue import Queue
 from .error import EyetrackingConfigurationError
 from .eyetrackerbase import EyetrackerBase
 from ...utils import LOGGER
-
+from .event import EyeMotionEventRaw
 from star_ray import Event
 
 try:
@@ -73,11 +73,11 @@ class TobiiEyetracker(EyetrackerBase):
             raise e
 
         super().__init__()
-        self._buffer = asyncio.Queue()
+
+        self._buffer = Queue()
         self._uri = uri
         self._eyetracker = None
         self._t0 = None
-        self._event_loop = None
 
         if uri is None:
             eyetrackers = _tr.find_all_eyetrackers()
@@ -97,8 +97,6 @@ class TobiiEyetracker(EyetrackerBase):
 
     def start(self):  # noqa
         try:
-            # NOTE: it is important that this is called in async context
-            self._event_loop = asyncio.get_event_loop()
             # so we can track the actual times (this will introduce a small error...)
             self._t0 = (_tr.get_system_time_stamp(), time.time())
             self._eyetracker.subscribe_to(
@@ -107,16 +105,10 @@ class TobiiEyetracker(EyetrackerBase):
                 as_dictionary=True,
             )
         except Exception as exception:
-            LOGGER.exception(
-                "Tobii Eyetracker%s failed to start.",
-                f" at {self._uri}" if self._uri else "",
-            )
+            LOGGER.exception(f"Tobii Eyetracker {self._uri} failed to start.")
             # TODO do we want to stop execution when this happens? maybe give an option to continue?
             raise exception
-        LOGGER.info(
-            "Tobii Eyetracker%s created successfully.",
-            f" at {self._uri}" if self._uri else "",
-        )
+        LOGGER.info(f"Tobii Eyetracker {self._uri} created successfully.")
 
     def stop(self):  # noqa
         self._eyetracker.unsubscribe_from(
@@ -145,9 +137,12 @@ class TobiiEyetracker(EyetrackerBase):
             else:
                 # it is useful to know when eyetracking events failed
                 point = (float("nan"), float("nan"))
-            event = dict(timestamp=timestamp, position=point)
+            event = EyeMotionEventRaw(timestamp=timestamp, position=point)
             # this is called from another thread (managed by tobii_research, it needs to happen in a thread safe way)
-            self._event_loop.call_soon_threadsafe(self._buffer.put_nowait, event)
+            self._buffer.put_nowait(event)
+            # asyncio.get_event_loop().call_soon_threadsafe(
+            #    self._buffer.put_nowait, event
+            # )
         except Exception as e:
             traceback.print_exception(e)
 
