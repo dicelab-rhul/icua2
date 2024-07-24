@@ -18,10 +18,9 @@ pip install ./icua2
 ```
 This will install all necessary dependencies.
 
-4. Run (with default configuration):
-```
-python -m icua2
-```
+4. Run:
+
+Try one of the examples in
 
 5. (Windows only) you may encounter the following error on first time install:
 ```
