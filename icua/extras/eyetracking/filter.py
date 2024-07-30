@@ -12,6 +12,7 @@ See class documentation for details.
 from typing import Any
 from collections import deque
 import math
+from ...utils import LOGGER
 
 __all__ = ("NWMAFilter", "WindowSpaceFilter", "IVTFilter")
 
@@ -39,6 +40,7 @@ class NWMAFilter:  # Non-weighted moving average
             dict[str, Any]: filtered eyetracking data.
         """
         x, y = data["position"]
+        print("nwma:", x, y)
         if math.isnan(x) or math.isnan(y):
             return data  # ignore this sample
         self.data_x.append(x)
@@ -100,7 +102,7 @@ class WindowSpaceFilter:
             dict[str, Any]: filtered eyetracking data.
         """
         x, y = data["position"]
-        # print(data["position"])
+        print("window:", x, y)
         if math.isnan(x) or math.isnan(y):
             data["in_window"] = False
             if self._keep_screen_data:
@@ -111,7 +113,9 @@ class WindowSpaceFilter:
 
         position_screen = (x, y)
         if not (0 <= x <= 1 and 0 <= y <= 1.0):
-            raise ValueError("Expected eyetracking coordinates in the range [0-1].")
+            LOGGER.warning(
+                f"Expected eyetracking coordinates in the range [0-1], received: {position_screen}."
+            )
         x *= self.screen_size[0]
         y *= self.screen_size[1]
         x -= self.window_position[0]
@@ -166,6 +170,7 @@ class IVTFilter:
         """
         x, y = data["position"]
         t = data["timestamp"]
+        print("ivt:", x, y)
 
         if math.isnan(x) or math.isnan(y):
             data["fixated"] = False

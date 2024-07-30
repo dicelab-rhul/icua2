@@ -9,7 +9,6 @@ requires-python = ">=3.10"
 dependencies = [
     "star_ray>=0.0.6",
     "star_ray_pygame>=0.0.7",
-    "star_ray_xml>=0.0.5",
     "pyfuncschedule>=0.1.0",
     "aiostream>=0.6.1",
     "loguru>=0.7.2",

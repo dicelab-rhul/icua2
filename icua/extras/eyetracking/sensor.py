@@ -51,9 +51,8 @@ class EyetrackerIOSensor(IOSensor):
             data = event.model_dump()
             for filter in [self._ma_filter, self._ivt_filter, self._ws_filter]:
                 data = filter(data)
-            # position needs to be set properly in the agent!
+            # NOTE: position needs to be set properly in the agent (i.e. convert to view space)
             data["position_raw"] = data["position"]
-            data["position"] = tuple([float("nan"), float("nan")])
             yield EyeMotionEvent.model_validate(data)
 
     @attempt
