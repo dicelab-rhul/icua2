@@ -1,4 +1,4 @@
-"""Module defines the :class:`Avatar` class, which will display a UI (`pygame` backend) and capture user input, including mouse clicks, motion, key events, window events, and eyetracking events (if the required sensor is added, see :class:`EyetrackingIOSensor`)."""
+"""Module defines the `Avatar` class, which will display a UI (`pygame` backend) and capture user input, including mouse clicks, motion, key events, window events, and eyetracking events (if the required sensor is added, see `EyetrackingIOSensor`)."""
 
 from star_ray import Sensor, Actuator, observe
 from star_ray_pygame.avatar import Avatar as PygameAvatar
@@ -10,7 +10,7 @@ from icua.event import (
 
 
 class Avatar(PygameAvatar):
-    """A special type of :class:`Agent` that will display a UI (`pygame` backend) to the user and capture various kinds of user input, including: mouse clicks, motion, key events, window events, and eyetracking events (if the required sensor is added, see :class:`EyetrackingIOSensor`)."""
+    """A special type of `Agent` that will display a UI (`pygame` backend) to the user and capture various kinds of user input, including: mouse clicks, motion, key events, window events, and eyetracking events (if the required sensor is added, see `EyetrackingIOSensor`)."""
 
     def __init__(
         self,
@@ -22,9 +22,9 @@ class Avatar(PygameAvatar):
         """Constructor.
 
         Args:
-            sensors (list[Sensor]): list of initial sensors, this may include instances of :class:`IOSensor` that will gather user input from devices (see e.g. :class:`EyetrackingIOSensor`). Common user input events such as mouse, keyboard and window events are already handled by a io sensor that is added automatically.
-            actuators (list[Actuator]): list of initial actuators, this should generally include an actuator that is capable of forwarding user input events (see e.g. :class:`AvatarActuator`).
-            window_config (WindowConfiguration, optional): UI window configuration. Defaults to None (see :class:`star_ray_pygame.agent.PyGameAvatar` for details).
+            sensors (list[Sensor]): list of initial sensors, this may include instances of `IOSensor` that will gather user input from devices (see e.g. `EyetrackingIOSensor`). Common user input events such as mouse, keyboard and window events are already handled by a io sensor that is added automatically.
+            actuators (list[Actuator]): list of initial actuators, this should generally include an actuator that is capable of forwarding user input events (see e.g. `AvatarActuator`).
+            window_config (WindowConfiguration, optional): UI window configuration. Defaults to None (see `star_ray_pygame.agent.PyGameAvatar` for details).
             kwargs (dict[str,Any]): additional optional keyword arguments.
         """
         super().__init__(sensors, actuators, window_config=window_config, **kwargs)

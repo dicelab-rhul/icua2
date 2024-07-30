@@ -1,4 +1,4 @@
-"""Module containing the abstract base class :class:`GuidanceActuator` and some concrete implementations: :class:`ArrowGuidanceActuator` and :class:`BoxGuidanceActuator` both provide convenient attempt methods for display visual guidance to a user."""
+"""Module containing the abstract base class `GuidanceActuator` and some concrete implementations: `ArrowGuidanceActuator` and `BoxGuidanceActuator` both provide convenient attempt methods for display visual guidance to a user."""
 
 from abc import abstractmethod
 from typing import Literal, Any
@@ -30,7 +30,7 @@ class GuidanceActuator(Actuator):
 
 
 class BoxGuidanceActuator(GuidanceActuator):
-    """A concrete implementation of :class:`GuidanceActuator` that implements box guidance. The box bounds a given task element serving to highlight it to the user, typically the task will be one that is not in an acceptible state."""
+    """A concrete implementation of `GuidanceActuator` that implements box guidance. The box bounds a given task element serving to highlight it to the user, typically the task will be one that is not in an acceptible state."""
 
     def __init__(
         self,
@@ -136,7 +136,7 @@ class BoxGuidanceActuator(GuidanceActuator):
 
 
 class ArrowGuidanceActuator(GuidanceActuator):
-    """A concrete implementation of :class:`GuidanceActuator` that implements a guidance arrow. The arrow is displayed at the users mouse (or gaze) position that points towards a given task element, typically this task will be one that is not in an acceptible state."""
+    """A concrete implementation of `GuidanceActuator` that implements a guidance arrow. The arrow is displayed at the users mouse (or gaze) position that points towards a given task element, typically this task will be one that is not in an acceptible state."""
 
     ARROW_MODES = Literal["gaze", "mouse", "fixed"]
 

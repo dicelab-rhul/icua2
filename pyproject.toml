@@ -1,5 +1,5 @@
 [project]
-name = "icua2"
+name = "icua"
 version = "2.0.4"
 description = "Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance."
 authors = [{name = "Benedict Wilkins", email = "benrjw@gmail.com"}]

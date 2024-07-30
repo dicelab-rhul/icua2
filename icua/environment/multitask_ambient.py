@@ -119,7 +119,9 @@ class MultiTaskAmbient(SVGAmbient):
         event = EnableTask(
             source=self.id, task_name=task_name, context=context, insert_at=insert_at
         )
-        self.__update__(event)
+        result = self.__update__(event)
+        if isinstance(result, ErrorActiveObservation):
+            raise result.exception()
 
     def disable_task(self, task_name: str):
         """Manually disable a task. Tasks may otherwise be disabled via an `EnableTask` action.
@@ -128,7 +130,9 @@ class MultiTaskAmbient(SVGAmbient):
             task_name (str): name of the task to disable.
         """
         event = DisableTask(source=self.id, task_name=task_name)
-        self.__update__(event)
+        result = self.__update__(event)
+        if isinstance(result, ErrorActiveObservation):
+            raise result.exception()
 
     def rename_task(self, task_name: str, new_name: str) -> None:
         """Rename a task. If the task is enabled this will alter the `id` attribute of the task element (TODO).

@@ -1,4 +1,4 @@
-"""Module containing the :class:`AvatarActuator`, see class documentation for details."""
+"""Module containing the `AvatarActuator`, see class documentation for details."""
 
 from star_ray.agent import Actuator, attempt
 
@@ -10,7 +10,7 @@ class AvatarActuator(Actuator):
 
     @attempt
     def render(self, action: RenderEvent = None):
-        """Attempt method that will attempt a :class:`RenderEvent`."""
+        """Attempt method that will attempt a `RenderEvent`."""
         if action is None:
             return RenderEvent()
         return action

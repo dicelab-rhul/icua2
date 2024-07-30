@@ -1,4 +1,4 @@
-"""Module that defines the :class:`GuidanceAgent` class. This type of agent can be used to provide visual feedback or "guidance" to a user based on their actions and the current state of the environment, see class documentation for details."""
+"""Module that defines the `GuidanceAgent` class. This type of agent can be used to provide visual feedback or "guidance" to a user based on their actions and the current state of the environment, see class documentation for details."""
 
 from typing import Any
 from collections.abc import Iterator
@@ -12,7 +12,7 @@ from .sensor_userinput import UserInputSensor
 
 
 class GuidanceAgent(AgentRouted):
-    """Base class for an agent that can provide users with visual guidance. It makes use of the task acceptability sensor API (see :class:`icua.agent.TaskAcceptabilitySensor`) to determine which tasks may require the users attention.
+    """Base class for an agent that can provide users with visual guidance. It makes use of the task acceptability sensor API (see `icua.agent.TaskAcceptabilitySensor`) to determine which tasks may require the users attention.
 
     The following methods will be called at the appropriate moment (e.g. when a task switchs from an acceptable state to an unacceptable state), a guidance agent should implement these to decide what the do in each case (e.g. show or hide specific guidance).
     - :func:`on_acceptable(self, task: str)`
@@ -123,7 +123,7 @@ class GuidanceAgent(AgentRouted):
         observation: ErrorActiveObservation | ErrorObservation,
         component: Component,
     ):
-        """Called if this agent receives an :class:`star_ray.event.ErrorObservation` from a component. By default this will re-raise the exception that the observation contains. This can be overriden to alter the default behaviour. The overriding method must be decorated with the `@observe` decorator to work correctly. This method should not be called manually and will be handled by this agents event routing mechanism.
+        """Called if this agent receives an `star_ray.event.ErrorObservation` from a component. By default this will re-raise the exception that the observation contains. This can be overriden to alter the default behaviour. The overriding method must be decorated with the `@observe` decorator to work correctly. This method should not be called manually and will be handled by this agents event routing mechanism.
 
         Args:
             observation (ErrorActiveObservation | ErrorObservation): the error observation.
@@ -136,7 +136,7 @@ class GuidanceAgent(AgentRouted):
 
     @observe
     def on_task_acceptability(self, observation: TaskAcceptabilityObservation):
-        """Called if this agent receives a :class:`icua.agent.TaskAcceptabilityObservation` from one of its sensors.
+        """Called if this agent receives a `icua.agent.TaskAcceptabilityObservation` from one of its sensors.
 
         This will trigger the relevant callback:
         - :func:`on_acceptable(self, task: str)`

@@ -35,7 +35,7 @@ class ScheduledAgent(Agent):
                 if isinstance(obs, ErrorObservation):
                     raise obs.exception()
         if self._completed:
-            await asyncio.sleep(1)  # TODO this is a temporary
+            await asyncio.sleep(0.1)  # TODO this is a temporary
             return  # TODO the agent is done, the environment should not be calling __cycle__ for this agent?
         try:
             # this will await the next action from the collection of schedules

@@ -1,4 +1,4 @@
-"""Module defines the :class:`EyetrackerIOSensor` class which may be attached to an agent to receive :class:`EyeMotionEvent`s as user input, see class documentation for details."""
+"""Module defines the `EyetrackerIOSensor` class which may be attached to an agent to receive `EyeMotionEvent`s as user input, see class documentation for details."""
 
 from star_ray.agent import IOSensor, attempt
 from .eyetrackerbase import EyetrackerBase
@@ -8,7 +8,7 @@ from ...event import WindowResizeEvent, WindowMoveEvent, ScreenSizeEvent
 
 
 class EyetrackerIOSensor(IOSensor):
-    """An :class:`IOSensor` implementation that gathers observations :class:`EyeMotionEvent` from an eyetracker."""
+    """An `IOSensor` implementation that gathers observations `EyeMotionEvent` from an eyetracker."""
 
     def __init__(
         self,
@@ -19,9 +19,9 @@ class EyetrackerIOSensor(IOSensor):
         """Constructor.
 
         Args:
-            eyetracker (EyetrackerBase): base eyetracker, this is the IO device of this :class:`IOSensor`.
-            velocity_threshold (float, optional): velocity threshold for the :class:`IVTFilter`. Defaults to 0.1.
-            moving_average (int, optional): moving average window size for the :class:`NWMAFilter`. Defaults to 10.
+            eyetracker (EyetrackerBase): base eyetracker, this is the IO device of this `IOSensor`.
+            velocity_threshold (float, optional): velocity threshold for the `IVTFilter`. Defaults to 0.1.
+            moving_average (int, optional): moving average window size for the `NWMAFilter`. Defaults to 10.
         """
         super().__init__(eyetracker)
         self._ivt_filter = IVTFilter(velocity_threshold)
@@ -33,9 +33,9 @@ class EyetrackerIOSensor(IOSensor):
         """Converts the list of raw eyetracking events to a list of eyetracking events by appling the filters that are part of this sensor.
 
         The filters are applied in order:
-        - :class:`NWMAFilter` - computes a moving average over points
-        - :class:`IVTFilter` - computes fixation/saccade based on velocity threshold.
-        - :class:`WindowSpaceFilter` - computes window UI space coordinates from screen space (requires screen & window information, see methods: :method:`EyetrackerIOSensor.on_window_move`, :method:`EyetrackerIOSensor.on_window_resize`, :method:`EyetrackerIOSensor.on_screen_size`).
+        - `NWMAFilter` - computes a moving average over points
+        - `IVTFilter` - computes fixation/saccade based on velocity threshold.
+        - `WindowSpaceFilter` - computes window UI space coordinates from screen space (requires screen & window information, see methods: `EyetrackerIOSensor.on_window_move`, `EyetrackerIOSensor.on_window_resize`, `EyetrackerIOSensor.on_screen_size`).
 
         Args:
             events (list[EyeMotionEventRaw]): raw eyetracking events
