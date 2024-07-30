@@ -1,6 +1,6 @@
 [project]
 name = "icua"
-version = "2.0.5"
+version = "2.0.6"
 description = "Integrated Cognitive User Assistance v2 - a platform supporting research in human attention guidance."
 authors = [{name = "Benedict Wilkins", email = "benrjw@gmail.com"}]
 license = { file = "LICENSE" }
