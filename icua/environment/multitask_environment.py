@@ -2,12 +2,9 @@
 
 from typing import Any
 from collections.abc import Callable
-import asyncio
 
-from icua.utils._schedule import ScheduledAgent
 from star_ray import Environment, Agent, Actuator
 from .multitask_ambient import MultiTaskAmbient
-from ..utils import LOGGER
 
 
 class MultiTaskEnvironment(Environment):
@@ -23,7 +20,7 @@ class MultiTaskEnvironment(Environment):
         self,
         avatar: Agent,
         agents: list[Agent] = None,
-        wait: float = 0.05,
+        wait: float = 0.01,
         svg_size: tuple[float, float] = None,
         svg_position: tuple[float, float] = None,
         logging_path: str = None,
@@ -34,7 +31,7 @@ class MultiTaskEnvironment(Environment):
         Args:
             avatar (Agent, optional): The users avatar. Defaults to None.
             agents (list[Agent], optional): list of initial agents. Defaults to None.
-            wait (float, optional): time to wait between simulation cycles. Defaults to 0.05.
+            wait (float, optional): time to wait between simulation cycles. Defaults to 0.01.
             svg_size (tuple[float, float], optional): size of the root SVG element. Defaults to None (see `MultiTaskAmbient` for details).
             svg_position (tuple[float, float], optional): position of the root SVG element. Defaults to None (see `MultiTaskAmbient` for details).
             logging_path (str, optional): path that events will be logged to. Defaults to None  (see `MultiTaskAmbient` for details).
@@ -120,75 +117,77 @@ class MultiTaskEnvironment(Environment):
             enable=enable,
         )
 
-    def run(self):  # noqa
-        async def _cancel_pending_tasks(pending_tasks, timeout=0.5):
-            """Await pending tasks with a timeout to avoid hanging."""
-            for pending_task in pending_tasks:
-                pending_task.cancel()
-            for pending_task in pending_tasks:
-                try:
-                    await asyncio.wait_for(pending_task, timeout=timeout)
-                except asyncio.CancelledError:
-                    pass  # print(f"Pending task {pending_task} was cancelled")
-                except asyncio.TimeoutError:
-                    LOGGER.warning(
-                        f"Pending task {pending_task} did not finish within timeout"
-                    )
-                    pass
-
-        async def _run():
-            """Run the simulation. This is a custom implementation of run which may be changed in favour of proper scheduling in future versions (if `star_ray` implements support for this)."""
-            event_loop = asyncio.get_event_loop()
-            await self.__initialise__(event_loop)
-            tasks = self.get_schedule()
-            # The default behaviour here is to exit the program if there is an exception,
-            # this is because we dont want any silent failures during an experiment as it may invalidate any experimental results.
-            # if this is not desired behaviour, you should override this method and continue execution after e.g. logging the exception.
-            done, pending = await asyncio.wait(
-                tasks, return_when=asyncio.FIRST_EXCEPTION
-            )
-            await _cancel_pending_tasks(pending)
-            for task in done:
-                e = task.exception()
-                if e:
-                    raise e
-
-        asyncio.run(_run())
-
     async def __initialise__(self, event_loop):  # noqa
         await self._ambient.__initialise__()
 
-    def get_schedule(self):  # noqa
-        tasks = []
-        for agent in self._ambient.get_agents():
-            if isinstance(agent.get_inner(), ScheduledAgent):
-                # schedule agents are fully async, they will wait to execute according to their schedule.
-                tasks.append(asyncio.create_task(self._run_agent_no_wait(agent)))
-            else:
-                tasks.append(asyncio.create_task(self._run_agent(agent)))
-        return tasks
+    # def run(self):  # noqa
+    #     async def _cancel_pending_tasks(pending_tasks, timeout=0.5):
+    #         """Await pending tasks with a timeout to avoid hanging."""
+    #         for pending_task in pending_tasks:
+    #             pending_task.cancel()
+    #         for pending_task in pending_tasks:
+    #             try:
+    #                 await asyncio.wait_for(pending_task, timeout=timeout)
+    #             except asyncio.CancelledError:
+    #                 pass  # print(f"Pending task {pending_task} was cancelled")
+    #             except asyncio.TimeoutError:
+    #                 LOGGER.warning(
+    #                     f"Pending task {pending_task} did not finish within timeout"
+    #                 )
+    #                 pass
 
-    async def _run_agent_no_wait(self, agent) -> None:
-        """Runs an agent without waiting. This should only be used for agents that have async cycle methods to prevent event loop hogging."""
-        # TODO check that the agent is alive...
-        try:
-            while self._ambient.is_alive:  # check that the agent is alive...?
-                await agent.__sense__(self._ambient)
-                await agent.__cycle__()
-                await agent.__execute__(self._ambient)
-        except asyncio.CancelledError:
-            pass
+    #     async def _run():
+    #         """Run the simulation. This is a custom implementation of run which may be changed in favour of proper scheduling in future versions (if `star_ray` implements support for this)."""
+    #         event_loop = asyncio.get_event_loop()
+    #         await self.__initialise__(event_loop)
+    #         tasks = self.get_schedule()
+    #         # The default behaviour here is to exit the program if there is an exception,
+    #         # this is because we dont want any silent failures during an experiment as it may invalidate any experimental results.
+    #         # if this is not desired behaviour, you should override this method and continue execution after e.g. logging the exception.
+    #         done, pending = await asyncio.wait(
+    #             tasks, return_when=asyncio.FIRST_EXCEPTION
+    #         )
+    #         await _cancel_pending_tasks(pending)
+    #         for task in done:
+    #             e = task.exception()
+    #             if e:
+    #                 raise e
 
-    async def _run_agent(self, agent) -> None:
-        """Run an agent in the usual way waiting for a short time before executing each cycle."""
-        try:
-            # TODO check that the agent is alive...
-            while self._ambient.is_alive:  # check that the agent is alive...?
-                await asyncio.sleep(self._wait / self._ambient.get_agent_count())
-                await agent.__sense__(self._ambient)
-                await agent.__cycle__()
-                await agent.__execute__(self._ambient)
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            raise e  # re-raise
+    #     asyncio.run(_run())
+
+    # def get_schedule(self):  # noqa
+    #     tasks = []
+    #     for agent in self._ambient.get_agents():
+    #         if isinstance(agent.get_inner(), ScheduledAgent):
+    #             # schedule agents are fully async, they will wait to execute according to their schedule.
+    #             tasks.append(asyncio.create_task(self._run_agent_no_wait(agent)))
+    #         else:
+    #             tasks.append(asyncio.create_task(self._run_agent(agent)))
+    #     return tasks
+
+    # async def _run_agent_no_wait(self, agent) -> None:
+    #     """Runs an agent without waiting. This should only be used for agents that have async cycle methods to prevent event loop hogging."""
+    #     # TODO check that the agent is alive...
+    #     try:
+    #         while self._ambient.is_alive:  # check that the agent is alive...?
+    #             await agent.__sense__(self._ambient)
+    #             await agent.__cycle__()
+    #             await agent.__execute__(self._ambient)
+    #     except asyncio.CancelledError:
+    #         pass
+    #     except Exception as e:
+    #         raise e  # re-raise
+
+    # async def _run_agent(self, agent) -> None:
+    #     """Run an agent in the usual way waiting for a short time before executing each cycle."""
+    #     try:
+    #         # TODO check that the agent is alive...
+    #         while self._ambient.is_alive:  # check that the agent is alive...?
+    #             await asyncio.sleep(self._wait / self._ambient.get_agent_count())
+    #             await agent.__sense__(self._ambient)
+    #             await agent.__cycle__()
+    #             await agent.__execute__(self._ambient)
+    #     except asyncio.CancelledError:
+    #         pass
+    #     except Exception as e:
+    #         raise e  # re-raise

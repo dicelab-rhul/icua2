@@ -6,7 +6,7 @@ import inspect
 from collections.abc import Callable
 from star_ray import Actuator, attempt, Event
 import pyfuncschedule as sch
-from icua.utils import ScheduledAgent
+from icua.utils import ScheduledAgentAsync
 
 SCHEDULE = """
 take1() @ [0.1]:5
@@ -16,7 +16,6 @@ take3() @ [0.1]:5
 
 SCHEDULE2 = """
 take1() @ [0.1]:20
-take2() @ [0.0]:1
 """
 
 start_time = time.time()
@@ -65,9 +64,9 @@ if __name__ == "__main__":
         actions = get_attempts(actuator)
         schedules = sch.resolve(schedule, actions=actions, functions={})
 
-        agent = ScheduledAgent([actuator], schedules)
+        agent = ScheduledAgentAsync([actuator], schedules)
         while not agent._completed:
-            agent.__cycle__()
+            await agent.__cycle__()
         import numpy as np
 
         print("mean dt:", np.mean(dts), "std dt:", np.std(dts))

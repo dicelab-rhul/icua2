@@ -4,19 +4,12 @@ import time
 import asyncio
 import inspect
 from collections.abc import Callable
-from star_ray import Actuator, attempt, Event
+from star_ray import Actuator, attempt, Event, Agent
 import pyfuncschedule as sch
 from icua.utils import ScheduledAgent
 
 SCHEDULE = """
-take1() @ [0.1]:5
-take2() @ [0.05, [0.1]:5]:1
-take3() @ [0.1]:5
-"""
-
-SCHEDULE2 = """
-take1() @ [0.1]:20
-take2() @ [0.0]:1
+take1() @ [0.05]:100
 """
 
 start_time = time.time()
@@ -57,17 +50,37 @@ def get_attempts(actuator: Actuator) -> dict[str, Callable]:
     return {m[0]: m[1] for m in filter(lambda m: hasattr(m[1], "is_attempt"), methods)}
 
 
+class OtherAgent(Agent):
+    """Other agent that is slow."""
+
+    def __cycle__(self):  # noqa
+        time.sleep(0.1)
+
+
 if __name__ == "__main__":
 
     async def main():  # noqa
-        schedule = sch.parse(SCHEDULE2)
+        schedule = sch.parse(SCHEDULE)
         actuator = Stub()
         actions = get_attempts(actuator)
         schedules = sch.resolve(schedule, actions=actions, functions={})
 
-        agent = ScheduledAgent([actuator], schedules)
-        while not agent._completed:
-            agent.__cycle__()
+        async def _run_sch_agent():
+            agent = ScheduledAgent([actuator], schedules)
+            while not agent._completed:
+                await agent.__cycle__()
+
+        async def _run_slow_agent():
+            agent = OtherAgent([], [])
+            for _ in range(20):
+                await asyncio.sleep(0.01)
+                agent.__cycle__()
+
+        task_sch = asyncio.create_task(_run_sch_agent())
+        task_slow = asyncio.create_task(_run_slow_agent())
+
+        await asyncio.wait([task_sch, task_slow], return_when=asyncio.ALL_COMPLETED)
+
         import numpy as np
 
         print("mean dt:", np.mean(dts), "std dt:", np.std(dts))

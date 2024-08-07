@@ -14,13 +14,14 @@ from .sensor_userinput import UserInputSensor
 class GuidanceAgent(AgentRouted):
     """Base class for an agent that can provide users with visual guidance. It makes use of the task acceptability sensor API (see `icua.agent.TaskAcceptabilitySensor`) to determine which tasks may require the users attention.
 
-    The following methods will be called at the appropriate moment (e.g. when a task switchs from an acceptable state to an unacceptable state), a guidance agent should implement these to decide what the do in each case (e.g. show or hide specific guidance).
-    - :func:`on_acceptable(self, task: str)`
-    - :func:`on_unacceptable(self, task: str)`
-    - :func:`on_active(self, task: str)`
-    - :func:`on_inactive(self, task: str)`
+    The following methods will be called at the appropriate moment (e.g. when a task switches from an acceptable state to an unacceptable state), a guidance agent should implement these to decide what the do in each case (e.g. show or hide specific guidance).
 
-    A history of user input events are also recorded and can be conveniently accessed via the :func:`get_latest_user_input` method.
+    - `on_acceptable(self, task: str)`
+    - `on_unacceptable(self, task: str)`
+    - `on_active(self, task: str)`
+    - `on_inactive(self, task: str)`
+
+    A history of user input events are also recorded and can be conveniently accessed via the `get_latest_user_input(self, event_type: type, n: int = 1) -> Iterator[Event]` method.
     """
 
     def __init__(
@@ -139,10 +140,10 @@ class GuidanceAgent(AgentRouted):
         """Called if this agent receives a `icua.agent.TaskAcceptabilityObservation` from one of its sensors.
 
         This will trigger the relevant callback:
-        - :func:`on_acceptable(self, task: str)`
-        - :func:`on_unacceptable(self, task: str)`
-        - :func:`on_active(self, task: str)`
-        - :func:`on_inactive(self, task: str)`
+        - `on_acceptable(self, task: str)`
+        - `on_unacceptable(self, task: str)`
+        - `on_active(self, task: str)`
+        - `on_inactive(self, task: str)`
 
         This method should not be called manually and will be handled by this agents event routing mechanism.
 
@@ -167,7 +168,7 @@ class GuidanceAgent(AgentRouted):
 
     # this is manually added to the event router (see __init__), so no @observe here
     def on_user_input(self, observation: Any):
-        """Called when this agent receives a user input event, it will add the event to an internal buffer. See :func:`get_latest_user_input`.
+        """Called when this agent receives a user input event, it will add the event to an internal buffer. See `get_latest_user_input`.
 
         This method should not be called manually and will be handled by this agents event routing mechanism.
 
