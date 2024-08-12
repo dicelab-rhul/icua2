@@ -79,7 +79,6 @@ if __name__ == "__main__":
     avatar = Avatar(
         [eyetracker_sensor], [FollowActuator()], window_config=window_config
     )
-    print(avatar.actuators)
     ambient = SVGAmbient([avatar])
     env = Environment(ambient, wait=0.05)
     env.run()
