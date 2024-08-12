@@ -13,7 +13,7 @@ def parse_schema(schema, indent=0, is_sub=False):
         "Default": 7,
         "Description": 11,
     }  # Default header widths
-    print(schema)
+    # print(schema)
     for key, properties in schema.items():
         field_name = f"{'    ' * indent}{key}"
         if not hasattr(properties, "get"):

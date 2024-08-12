@@ -29,6 +29,18 @@ class GuidanceActuator(Actuator):
         """An attempt method that will hide guidance from a user."""
 
 
+class CounterFactualGuidanceActuator(GuidanceActuator):
+    """A simple guidance actuator that makes no change to the UI, but will take `ShowGuidance` and `HideGuidance` actions. These actions may be logged an used to determine when an agent decided to show/hide guidance to the user."""
+
+    @attempt()
+    def show_guidance(self, task: str) -> list[Action]:  # noqa
+        return ShowGuidance(task=task)
+
+    @attempt()
+    def hide_guidance(self, task: str) -> list[Action]:  # noqa
+        return HideGuidance(task=task)
+
+
 class BoxGuidanceActuator(GuidanceActuator):
     """A concrete implementation of `GuidanceActuator` that implements box guidance. The box bounds a given task element serving to highlight it to the user, typically the task will be one that is not in an acceptible state."""
 
@@ -85,9 +97,7 @@ class BoxGuidanceActuator(GuidanceActuator):
         self._guidance_on = task
         guidance_box_id = self._guidance_box_id_template % task
 
-        actions = [
-            ShowGuidance(task=task),
-        ]
+        actions = []
 
         if guidance_box_id not in self._guidance_boxes:
             # first time! insert the guidance box
@@ -116,9 +126,7 @@ class BoxGuidanceActuator(GuidanceActuator):
         self._guidance_on = None
         guidance_box_id = self._guidance_box_id_template % task
 
-        actions = [
-            ShowGuidance(task=task),
-        ]
+        actions = []
 
         if guidance_box_id not in self._guidance_boxes:
             # first time! insert the guidance box
@@ -153,11 +161,11 @@ class ArrowGuidanceActuator(GuidanceActuator):
 
         Args:
             arrow_mode (Literal): modes for arrow display,
-            arrow_scale (float, optional): _description_. Defaults to 1.0.
-            arrow_fill_color (str, optional): _description_. Defaults to "none".
-            arrow_stroke_color (str, optional): _description_. Defaults to "#ff0000".
-            arrow_stroke_width (float, optional): _description_. Defaults to 4.0.
-            arrow_offset (tuple[float, float], optional): _description_. Defaults to (80, 80).
+            arrow_scale (float, optional): scale of the arrow. Defaults to 1.0.
+            arrow_fill_color (str, optional): fill colour of the arrow. Defaults to "none".
+            arrow_stroke_color (str, optional): line colour of the arrow outlien. Defaults to "#ff0000".
+            arrow_stroke_width (float, optional): line width of the arrow outline. Defaults to 4.0.
+            arrow_offset (tuple[float, float], optional): offset of the arrow from its set position. Defaults to (80, 80).
 
         Raises:
             ValueError: _description_
@@ -210,19 +218,9 @@ class ArrowGuidanceActuator(GuidanceActuator):
                 f"Invalid argument: `arrow_mode` must be one of {ArrowGuidanceActuator.ARROW_MODES}"
             )
 
-    @property
-    def is_arrow_mode_none(self) -> bool:
-        """Whether the arrow guidance is enabled.
-
-        Returns:
-            bool: _description_
-        """
-        return self._arrow_mode == "none"
-
     @attempt([EyeMotionEvent])
     def set_gaze_position(self, action: EyeMotionEvent) -> None:
         """Sets the users current gaze position. This may be used as a position for arrow display."""
-        print(action)
         self._gaze_position = action.position
 
     @attempt([MouseMotionEvent])
@@ -306,7 +304,6 @@ class ArrowGuidanceActuator(GuidanceActuator):
         """
         self._guidance_on = task
         actions = [
-            ShowGuidance(task=task),
             ShowElementAction(xpath=f"//*[@id='{self._guidance_arrow_id}']"),
         ]
         return actions
@@ -323,7 +320,6 @@ class ArrowGuidanceActuator(GuidanceActuator):
         """
         self._guidance_on = None
         actions = [
-            HideGuidance(task=task),
             HideElementAction(xpath=f"//*[@id='{self._guidance_arrow_id}']"),
         ]
         return actions

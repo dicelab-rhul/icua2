@@ -5,7 +5,7 @@ from collections.abc import Callable
 from star_ray.event import wrap_observation
 from star_ray.agent import Agent, Actuator
 from star_ray.event import Event, ActiveObservation, ErrorActiveObservation
-from star_ray_xml import Insert, Select
+from star_ray_xml import Insert, Select, XPathElementsNotFound
 from star_ray_pygame import SVGAmbient
 
 from ..event import (
@@ -21,13 +21,27 @@ from ..event import (
     WindowResizeEvent,
     ScreenSizeEvent,
 )
-from ..event import EnableTask, DisableTask, RenderEvent, ShowGuidance, HideGuidance
+from ..event import (
+    EnableTask,
+    DisableTask,
+    RenderEvent,
+    ShowGuidance,
+    HideGuidance,
+    TaskUnacceptable,
+    TaskAcceptable,
+)
 from ..utils import TaskLoader, Task
 from ..utils._logging import EventLogger
 
 
 # these actions dont have an effect, but they are important for logging
-INERT_ACTIONS = (RenderEvent, ShowGuidance, HideGuidance)
+INERT_ACTIONS = (
+    RenderEvent,
+    ShowGuidance,
+    HideGuidance,
+    TaskUnacceptable,
+    TaskAcceptable,
+)
 
 
 class MultiTaskAmbient(SVGAmbient):
@@ -196,11 +210,15 @@ class MultiTaskAmbient(SVGAmbient):
         Returns:
             bool: True if the task is enabled (is part of the state), False otherwise.
         """
-        result = self._state.select(
-            Select.new(f"/svg:svg/*[@id='{task_name}']", ["id"])
-        )
+        try:
+            result = self._state.select(
+                Select.new(f"/svg:svg/*[@id='{task_name}']", ["id"])
+            )
+        except XPathElementsNotFound:
+            return False
         return result is not None and len(result) > 0
 
+    @wrap_observation
     def _disable_task(self, event: DisableTask):
         """Disables a task - this will be called when a `DisableTask` event is received."""
         raise NotImplementedError("TODO")  # TODO

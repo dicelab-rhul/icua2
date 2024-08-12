@@ -7,8 +7,10 @@ from itertools import islice
 from star_ray.agent import AgentRouted, Component, Sensor, Actuator, observe
 from star_ray.event import Event, ErrorObservation, ErrorActiveObservation
 
-from .acceptability import TaskAcceptabilityObservation
+from .sensor_acceptability import TaskAcceptabilityObservation
 from .sensor_userinput import UserInputSensor
+from .actuator_acceptability import TaskAcceptabilityActuator
+from ..event import TaskAcceptable, TaskUnacceptable
 
 
 class GuidanceAgent(AgentRouted):
@@ -45,7 +47,14 @@ class GuidanceAgent(AgentRouted):
         user_input_sensor = UserInputSensor(subscribe_to=[*user_input_events])
         user_input_events = user_input_sensor._subscribe_to
 
-        super().__init__([user_input_sensor, *sensors], actuators)
+        # used when tasks change their acceptability status (receives TaskAcceptable and TaskUnacceptable actions)
+        # TODO perhaps we need one for tasks that are active/inactive)
+        # but EnableTask and DisableTask may serve this purpose...
+        _task_acceptability_actuator = TaskAcceptabilityActuator()
+        super().__init__(
+            [user_input_sensor, *sensors],
+            [_task_acceptability_actuator, *actuators],
+        )
         # agent's beliefs store
         self.beliefs = defaultdict(lambda: None)
         # track the acceptability of each task
@@ -162,8 +171,10 @@ class GuidanceAgent(AgentRouted):
         elif not was_active and is_active:
             self.on_active(task)
         if was_acceptable and not is_acceptable:
+            self.attempt(TaskUnacceptable(task=task))
             self.on_unacceptable(task)
         elif not was_acceptable and is_acceptable:
+            self.attempt(TaskAcceptable(task=task))
             self.on_acceptable(task)
 
     # this is manually added to the event router (see __init__), so no @observe here

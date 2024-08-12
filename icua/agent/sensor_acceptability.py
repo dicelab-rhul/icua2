@@ -138,7 +138,7 @@ class TaskAcceptabilitySensor(Sensor):
         # sense() must return a list of actions!
         if not isinstance(actions, list | tuple):
             raise TypeError(
-                f"sense() must return a `list` of events, received: {type(actions)}"
+                f"`sense()` must return a `list` of events, received: {type(actions)}"
             )
         return actions
 
@@ -182,6 +182,7 @@ class TaskAcceptabilitySensor(Sensor):
         if isinstance(observation, ErrorObservation):
             self.on_error_observation(observation)
         elif isinstance(observation, Observation):
+            # TODO observation.values should only be of length 1?
             for data in observation.values:
                 try:
                     self._beliefs[data.pop("id")] = deepcopy(data)

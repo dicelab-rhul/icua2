@@ -6,12 +6,21 @@ import lxml.etree as etree
 import math
 
 from star_ray.event import Action
-from star_ray_xml import XMLState, XPathQuery, insert, update, select
+from star_ray_xml import (
+    XMLState,
+    XPathQuery,
+    insert,
+    update,
+    select,
+    XPathElementsNotFound,
+)
 from star_ray_pygame.cairosurface import parse_transform
 from star_ray_pygame import SVGAmbient
 
 
 __all__ = (
+    "TaskAcceptable",
+    "TaskUnacceptable",
     "ShowGuidance",
     "HideGuidance",
     "XPathAction",
@@ -21,6 +30,24 @@ __all__ = (
     "ShowElementAction",
     "HideElementAction",
 )
+
+
+class TaskAcceptable(Action):
+    """This action to be taken when a task goes from an `acceptable` state to an `unacceptable` state."""
+
+    task: str
+
+    def __execute__(self, state: XMLState):  # noqa
+        pass
+
+
+class TaskUnacceptable(Action):
+    """This action to be taken when a task goes from an `acceptable` state to an `unacceptable` state."""
+
+    task: str
+
+    def __execute__(self, state: XMLState):  # noqa
+        pass
 
 
 class ShowGuidance(Action):
@@ -199,13 +226,13 @@ class DrawArrowAction(DrawElementAction):
         assert _id is not None  # must have an 'id'
         # does the element already exist?
         uxpath = xpath + f"/svg:svg[@id='{data['id']}']"
-        result = state.select(select(xpath=uxpath, attrs=["id"]))
-        if result:
-            # it already exists, update it
-            cls._update(state, data, uxpath)
-        else:
+        try:
+            state.select(select(xpath=uxpath, attrs=["id"]))
+        except XPathElementsNotFound:
             # it doesnt exist, create it
-            cls._insert(state, data, xpath)
+            return cls._insert(state, data, xpath)
+        # it already exists, update it
+        cls._update(state, data, uxpath)
 
     @staticmethod
     def get_size_scale(state: XMLState, xpath: str):
@@ -323,13 +350,12 @@ class DrawBoxAction(XPathAction):
             raise ValueError("Attempted to draw a box without an `id` attribute.")
         # check if the box already exists
         uxpath = xpath + f"/svg:rect[@id='{box_id}']"
-        result = state.select(select(xpath=uxpath, attrs=["id"]))
-        if result:
-            return state.update(update(xpath=uxpath, attrs=box_data))
-        else:
-            return DrawBoxAction._new_box(
-                state, box_data, xpath
-            )  # create a new box (it doesnt exist yet)
+        try:
+            state.select(select(xpath=uxpath, attrs=["id"]))
+        except XPathElementsNotFound:
+            # create a new box (it doesnt exist yet)
+            return DrawBoxAction._new_box(state, box_data, xpath)
+        return state.update(update(xpath=uxpath, attrs=box_data))
 
     def __execute__(self, state: XMLState):  # noqa
         return DrawBoxAction._draw_box(state, self.box_data, self.xpath)

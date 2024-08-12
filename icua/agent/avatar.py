@@ -31,7 +31,7 @@ class Avatar(PygameAvatar):
 
     def render(self) -> None:
         """Renders the UI and triggers a `RenderEvent`."""
-        # this is for logging purposes, we can see when the rendering beings. if all agents are running locally (i.e. synchronously), then we can assume that all preceeding events in the event log will be visible to the user! this is very useful for post-analysis in experiments.
+        # this is for logging purposes, we can see when the rendering beings. if all agents are running locally (and synchronously), then we can assume that all preceeding events in the event log will be visible to the user! this is very useful for post-analysis in experiments.
         self.attempt(RenderEvent())
         super().render()
 

@@ -21,7 +21,7 @@ from ..event.event_guidance import (
     DrawBoxOnElementAction,
     DrawElementAction,
 )
-from .acceptability import (
+from .sensor_acceptability import (
     TaskAcceptabilitySensor,
     TaskAcceptabilityObservation,
 )
@@ -33,8 +33,12 @@ from .sensor_userinput import (
 )
 from .actuator_guidance import (
     GuidanceActuator,
+    CounterFactualGuidanceActuator,
     ArrowGuidanceActuator,
     BoxGuidanceActuator,
+)
+from .actuator_acceptability import (
+    TaskAcceptabilityActuator,
 )
 from .actuator_avatar import AvatarActuator
 from .avatar import Avatar
@@ -61,6 +65,8 @@ __all__ = (
     "TaskAcceptabilitySensor",
     # actuators
     "GuidanceActuator",
+    "TaskAcceptabilityActuator",
+    "CounterFactualGuidanceActuator",
     "ArrowGuidanceActuator",
     "BoxGuidanceActuator",
     "AvatarActuator",

@@ -26,6 +26,8 @@ from star_ray_xml import (
 from .event_task import EnableTask, DisableTask
 
 from .event_guidance import (
+    TaskAcceptable,
+    TaskUnacceptable,
     ShowGuidance,
     HideGuidance,
     XPathAction,
@@ -98,6 +100,8 @@ __all__ = (
     # task events
     "EnableTask",
     "DisableTask",
+    "TaskAcceptable",
+    "TaskUnacceptable",
     # guidance events
     "ShowGuidance",
     "HideGuidance",

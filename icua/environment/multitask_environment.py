@@ -1,10 +1,13 @@
 """Module defining the `MultiTaskEnvironment`, see class documentation for details."""
 
+import asyncio
 from typing import Any
 from collections.abc import Callable
 
 from star_ray import Environment, Agent, Actuator
 from .multitask_ambient import MultiTaskAmbient
+
+from ..utils import LOGGER
 
 
 class MultiTaskEnvironment(Environment):
@@ -24,6 +27,7 @@ class MultiTaskEnvironment(Environment):
         svg_size: tuple[float, float] = None,
         svg_position: tuple[float, float] = None,
         logging_path: str = None,
+        terminate_after: float = -1,
         **kwargs: dict[str, Any],
     ):
         """Constructor.
@@ -34,7 +38,8 @@ class MultiTaskEnvironment(Environment):
             wait (float, optional): time to wait between simulation cycles. Defaults to 0.01.
             svg_size (tuple[float, float], optional): size of the root SVG element. Defaults to None (see `MultiTaskAmbient` for details).
             svg_position (tuple[float, float], optional): position of the root SVG element. Defaults to None (see `MultiTaskAmbient` for details).
-            logging_path (str, optional): path that events will be logged to. Defaults to None  (see `MultiTaskAmbient` for details).
+            logging_path (str, optional): path that events will be logged to. Defaults to None (see `MultiTaskAmbient` for details).
+            terminate_after (float, optional): time after which to terminate the simulatio. Defaults to -1 (never terminate).
             kwargs (dict[str, Any]): Additional optional keyword arguments, see `MultiTaskAmbient` for options.
         """
         ambient = MultiTaskAmbient(
@@ -50,6 +55,8 @@ class MultiTaskEnvironment(Environment):
             wait=wait,
             sync=True,
         )
+        # time until termination
+        self._terminate_after = terminate_after
 
     @property
     def ambient(self) -> MultiTaskAmbient:
@@ -109,6 +116,7 @@ class MultiTaskEnvironment(Environment):
             avatar_actuators (list[Callable[[], Actuator]] | None, optional): actuators that will be added to the avatar upon enabling the task, see `MultiTaskEnvironment` documentation for details. Defaults to None.
             enable (bool, optional): whether to immediately enable the task. Defaults to False.
         """
+        # attempt to log the files that will be used in the task
         self.ambient.add_task(
             name,
             path,
@@ -119,6 +127,27 @@ class MultiTaskEnvironment(Environment):
 
     async def __initialise__(self, event_loop):  # noqa
         await self._ambient.__initialise__()
+
+    def get_schedule(self) -> list[asyncio.Task]:  # noqa
+        tasks = super().get_schedule()
+        # whether to terminate after a given period of time
+        if self._terminate_after > 0:
+
+            async def _terminate_after(env: MultiTaskEnvironment):
+                try:
+                    await asyncio.sleep(env._terminate_after)
+                    # TODO perhaps this should be an event that is logged?
+                    LOGGER.debug(
+                        f"Closing simulation: time limit ({env._terminate_after}s) reached"
+                    )
+                    await env.ambient.__terminate__()
+                except asyncio.CancelledError:
+                    pass
+                except asyncio.TimeoutError:
+                    pass
+
+            tasks.append(asyncio.create_task(_terminate_after(self)))
+        return tasks
 
     # def run(self):  # noqa
     #     async def _cancel_pending_tasks(pending_tasks, timeout=0.5):

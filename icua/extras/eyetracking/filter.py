@@ -40,7 +40,7 @@ class NWMAFilter:  # Non-weighted moving average
             dict[str, Any]: filtered eyetracking data.
         """
         x, y = data["position"]
-        print("nwma:", x, y)
+        # print("nwma:", x, y)
         if math.isnan(x) or math.isnan(y):
             return data  # ignore this sample
         self.data_x.append(x)
@@ -102,7 +102,7 @@ class WindowSpaceFilter:
             dict[str, Any]: filtered eyetracking data.
         """
         x, y = data["position"]
-        print("window:", x, y)
+        # print("window:", x, y)
         if math.isnan(x) or math.isnan(y):
             data["in_window"] = False
             if self._keep_screen_data:
@@ -170,7 +170,7 @@ class IVTFilter:
         """
         x, y = data["position"]
         t = data["timestamp"]
-        print("ivt:", x, y)
+        # print("ivt:", x, y)
 
         if math.isnan(x) or math.isnan(y):
             data["fixated"] = False

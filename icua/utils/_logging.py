@@ -1,6 +1,7 @@
 import logging
 import pathlib
 from datetime import datetime
+import time
 from pydantic import BaseModel
 from star_ray.pubsub import Subscriber
 
@@ -11,6 +12,7 @@ import os
 import sys
 
 _CWD_DIRECTORY = Path(os.getcwd())
+# TODO remove this...
 _PROJECT_ROOT_DIRECTORY = "C:/Users/brjw/Documents/repos/dicelab"
 
 
@@ -69,17 +71,19 @@ class EventLogger(Subscriber):
         self.logger = logging.getLogger(f"{path.name.split('.')[0]}_event_logger")
         self.logger.setLevel(logging.INFO)
         file_handler = logging.FileHandler(self.path)
-        formatter = DateTimeFormatter(
-            fmt="%(asctime)s %(message)s", datefmt="%Y-%m-%d-%H-%M-%S-%f"
-        )
-        file_handler.setFormatter(formatter)
+        # TODO REMOVE DEPRECATED - time stamp is now set in log to be more in line with event execution times
+        # formatter = DateTimeFormatter(
+        #     fmt="%(asctime)s %(message)s", datefmt="%Y-%m-%d-%H-%M-%S-%f"
+        # )
+        # file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
     def log(self, event: BaseModel):
-        self.logger.info("%s %s", type(event).__name__, event.model_dump_json())
+        t = datetime.fromtimestamp(time.time()).strftime("%Y-%m-%d-%H-%M-%S-%f")
+        self.logger.info("%s %s %s", t, type(event).__name__, event.model_dump_json())
 
-    def __notify__(self, message: BaseModel):
-        self.log(message)
+    def __notify__(self, event: BaseModel):
+        self.log(event)
 
     @staticmethod
     def default_log_path(path=None, name=None):
