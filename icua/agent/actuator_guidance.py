@@ -1,13 +1,13 @@
 """Module containing the abstract base class `GuidanceActuator` and some concrete implementations: `ArrowGuidanceActuator` and `BoxGuidanceActuator` both provide convenient attempt methods for display visual guidance to a user."""
 
+from math import isfinite
 from abc import abstractmethod
 from typing import Literal, Any
-from star_ray.agent import Actuator, attempt
+from star_ray.agent import Agent, Actuator, attempt
 from star_ray.event import Action
-from icua.event import MouseMotionEvent, EyeMotionEvent
-from star_ray.agent.agent import Agent
-
-from ..event.event_guidance import (
+from ..utils import LOGGER
+from ..event import (
+    MouseMotionEvent, EyeMotionEvent,
     DrawArrowAction,
     DrawBoxOnElementAction,
     ShowElementAction,
@@ -191,7 +191,8 @@ class ArrowGuidanceActuator(GuidanceActuator):
         if self._guidance_on is None:
             return []
         elif self._arrow_mode == "gaze":
-            if self._gaze_position:  # TODO check that this doesnt continuously hold...?
+            # eyetracking positions can be nan, dont update the position if they are?
+            if isfinite(self._gaze_position[0]) and isfinite(self._gaze_position[1]):
                 attrs = dict(
                     id=self._guidance_arrow_id,
                     x=self._gaze_position[0] + self._arrow_offset[0],
@@ -199,6 +200,8 @@ class ArrowGuidanceActuator(GuidanceActuator):
                     point_to=self._guidance_on,
                 )
                 return [DrawArrowAction(xpath="/svg:svg", data=attrs)]
+            else:
+                LOGGER.warning("Ignoring NaN arrow position.")
             return []
         elif self._arrow_mode == "mouse":
             if self._mouse_position:
