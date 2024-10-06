@@ -13,6 +13,43 @@ from icua.event import (
 import numpy as np
 
 
+def get_svg_as_image(
+    svg_size: tuple[int, int], events: list[float, Event]
+) -> np.ndarray:
+    """Get the initial svg that was displayed at the begining of the simulation.
+
+    This can be useful for debugging or visualising mouse/eye positions relative to tasks. The render is static - it doesn't change with updates to the tasks.
+
+    Args:
+        svg_size (tuple[int, int]): size of the svg (UI size from configuration).
+        events (list[float, Event]): event log
+
+    Returns:
+        np.ndarray: rendered svg in HWC uint8 format of size `svg_size`
+    """
+    from star_ray_xml import Insert
+    from star_ray_pygame import SVGAmbient
+    from star_ray_pygame.cairosurface import CairoSVGSurface
+    from .event_log_parser import EventLogParser
+
+    parser = EventLogParser([])
+    insert_events = parser.filter_events(events, Insert)
+    # window_resize_events = parser.filter_events(events, WindowResizeEvent)
+    # if len(window_resize_events) > 1:
+    #     LOGGER.warning(
+    #         "Window was resized during simulation, static event visualisation may fail."
+    #     )
+    state = SVGAmbient([], svg_size=svg_size).get_state()
+    for _, event in insert_events:
+        state.insert(event)
+    svg_root = state.get_root()._base
+    # by default, the window size is used as the surface size, see star_ray_pygame.view.View
+    surface = CairoSVGSurface(svg_size)
+    surface.update(svg_root)
+    # matplotlib wants the image in WHC format...
+    return surface.render_to_array(svg_size).transpose(1, 0, 2)
+
+
 def merge_intervals(intervals: np.ndarray, *extra: np.ndarray) -> np.ndarray:
     """Merge overlapping intervals. Intervals are specified by (start,end) as an array of shape (n,2).
 

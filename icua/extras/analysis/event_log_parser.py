@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
 from pydantic import ValidationError
+from typing import TypeVar
 
 import pkgutil
 import importlib
@@ -12,6 +13,9 @@ import pandas as pd
 
 from star_ray import Event
 from ...utils import LOGGER
+
+
+E = TypeVar("E")
 
 
 class EventLogParser:
@@ -65,16 +69,16 @@ class EventLogParser:
         return log_files[0].as_posix()
 
     def filter_events(
-        self, events: list[tuple[float, Event]], type: type[Event]
-    ) -> list[tuple[float, Event]]:
+        self, events: list[tuple[float, Event]], type: type[E]
+    ) -> list[tuple[float, E]]:
         """Filters the list of events to contain only those of the given `type`.
 
         Args:
             events (list[tuple[float, Event]]): list of events
-            type (type[Event]): event to retrieve
+            type (type[E]): event to retrieve
 
         Returns:
-            list[tuple[float, Event]]: list of events of only the given type
+            list[tuple[float, E]]: list of events of only the given type
         """
         return list(filter(lambda x: isinstance(x[1], type), events))
 
