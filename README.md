@@ -1,41 +1,7 @@
-# Integrated Cognative User Assistance 2 (icua)
+# Integrated Cognative User Assistance 2
 
-### Quick install
+icua2 is an experimental platform that supports the development of AI-based user assistants. The platform is written in Python and is based on the multi-agent simulation platform [Star Ray](https://github.com/dicelab-rhul/star-ray) (**S**imulation **T**estbed for **A**gent **R**esearch [**ray**](https://www.ray.io/)). 
 
-COMING SOON
+## Documentation 
 
-### Quick install (from source)
-
-1. (Recommended) Create a virtual environment to better manage your python packages. See e.g. [anaconda](https://www.anaconda.com/), or [venv](https://docs.python.org/3/library/venv.html). 
-
-2. Get latest version from git (main branch):
-```
-git clone https://github.com/dicelab-rhul/icua2.git
-```
-3. Install with pip:
-```
-pip install ./icua2
-```
-This will install all necessary dependencies.
-
-4. Run:
-
-Try one of the examples in
-
-5. (Windows only) you may encounter the following error on first time install:
-```
-TODO
-```
-Follow the link and install GTK-3, after installing run again (step 4.) and the error should be fixed. If not, create an [issue](https://github.com/dicelab-rhul/icua2/issues) in this repository giving as much detail as you can.
-
-
-
-
-### Matbii
-
-
-
-
-Training videos and a summary of MATBII functionality can be found here.
-
-https://matb.larc.nasa.gov/resources/videos/matb-ii-training-videos/
+Documentation is coming soon, for now see the first instance of an icua2 system: a fully customisable [mabtii clone](https://dicelab-rhul.github.io/matbii/latest/) which has been built to support experiments in human factors research.

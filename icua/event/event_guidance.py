@@ -255,7 +255,7 @@ class DrawArrowAction(DrawElementAction):
         if not result:
             raise ValueError(f"Element at xpath: {xpath} doesn't exist")
         values = result[0]
-        x, y = (values["x"], values["y"])
+        x, y = (float(values["x"]), float(values["y"]))
         scale, _, _ = parse_transform(values["transform"])
         width, height = (values["width"] * scale[0], values["height"] * scale[1])
         return x + width / 2, y + height / 2
