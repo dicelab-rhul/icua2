@@ -149,16 +149,8 @@ class TaskAcceptabilitySensor(Sensor):
         # typically these will indicate if the acceptability of the task has changed.
         # The agent can also access this information directly using the `is_acceptable` method.
         for observation in observations:
-            self._update_beliefs(observation)
+            self._on_observation(observation)
         return []
-
-    def on_error_observation(self, observation: ErrorObservation):
-        """Handle observation errors, which may occur if for example, required task elements are missing during sense actions. By default these error observations will be produced by `iter_observations` delegating the error handling to the agent. Override this method if you want custom behaviour for handling errors.
-
-        Args:
-            observation (ErrorObservation): error observation.
-        """
-        self._errors.append(observation)
 
     @property
     def beliefs(self) -> dict[str, Any]:
@@ -178,17 +170,33 @@ class TaskAcceptabilitySensor(Sensor):
         """
         return self._task_name
 
-    def _update_beliefs(self, observation: Observation | ErrorObservation):
+    def _on_observation(self, observation: Observation | ErrorObservation):
+        """Method called internally to handle observations."""
         if isinstance(observation, ErrorObservation):
             self.on_error_observation(observation)
         elif isinstance(observation, Observation):
-            # TODO observation.values should only be of length 1?
-            for data in observation.values:
-                try:
-                    self._beliefs[data.pop("id")] = deepcopy(data)
-                except KeyError:
-                    raise KeyError(
-                        f"Observation: {observation} doesn't contain the required `id` attribute."
-                    )
+            self.on_observation(observation)
         else:
             raise TypeError(f"Invalid observation type: {type(observation)}")
+
+    def on_error_observation(self, observation: ErrorObservation):
+        """Handle observation errors, which may occur if for example, required task elements are missing during sense actions. By default these error observations will be produced by `iter_observations` delegating the error handling to the agent. Override this method if you want custom behaviour for handling errors.
+
+        Args:
+            observation (ErrorObservation): error observation.
+        """
+        self._errors.append(observation)
+
+    def on_observation(self, observation: Observation):
+        """Called when a new observation is received by this sensor. By default this sensors beliefs are updated with this new observation, all observation data (in the field `values`) is added to the `belief` map with the element 'id' as the belief key.
+
+        Args:
+            observation (Observation): observation to update beliefs with.
+        """
+        for data in observation.values:
+            try:
+                self._beliefs[data.pop("id")] = deepcopy(data)
+            except KeyError:
+                raise KeyError(
+                    f"Observation: {observation} doesn't contain the required `id` attribute."
+                )

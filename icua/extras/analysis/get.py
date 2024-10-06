@@ -10,14 +10,58 @@ from icua.event import (
     TaskAcceptable,
     TaskUnacceptable,
 )
+import numpy as np
+
+
+def merge_intervals(intervals: np.ndarray, *extra: np.ndarray) -> np.ndarray:
+    """Merge overlapping intervals. Intervals are specified by (start,end) as an array of shape (n,2).
+
+    Args:
+        intervals (np.ndarray): intervals to merge.
+        extra (tuple[np.ndarray], optional): additional array(s) of intervals to merge. The result will be a single array containing merged intervals from `intervals` and `extra`.
+
+    Returns:
+        np.ndarray: merged intervals
+    """
+
+    def _normalise_types(inter):
+        if len(inter) == 0:
+            array = np.array([]).reshape(0, 2)
+        else:
+            array = np.array(intervals)
+        assert len(array.shape) == 2
+        assert array.shape[1] == 2
+        return array
+
+    intervals = np.concatenate([_normalise_types(i) for i in (intervals, *extra)])
+    sorted_intervals = intervals[intervals[:, 0].argsort()]
+    starts = sorted_intervals[:, 0]
+    ends = sorted_intervals[:, 1]
+    merged_intervals = []
+    current_start = starts[0]
+    current_end = ends[0]
+
+    for i in range(1, len(starts)):
+        # If the next interval overlaps or touches, merge it
+        if starts[i] <= current_end:
+            current_end = max(current_end, ends[i])  # Update the current interval's end
+        else:
+            # If there is no overlap, append the current interval and start a new one
+            merged_intervals.append([current_start, current_end])
+            current_start = starts[i]
+            current_end = ends[i]
+
+    # Append the last interval
+    merged_intervals.append([current_start, current_end])
+    return np.array(merged_intervals)
 
 
 def dedup(df: pd.DataFrame, col: str) -> pd.DataFrame:
-    """Remove consective duplicates from df by the value in `col`.
+    """Remove consective duplicate rows from `df` by the value in `col`.
 
     Args:
-        df (pd.DataFrame): dataframe to remove values from.
-        col (str): column to use
+        df (pd.DataFrame): dataframe to remove duplicate rows from
+        col (str): column to use to locate duplicates
 
     Returns:
         pd.DataFrame: the dedupped dataframe
@@ -30,7 +74,7 @@ def _generate_task_intervals(
     start: type | Callable[[Event], bool],
     end: type | Callable[[Event], bool],
 ):
-    start_time, end_time = events[0][0], events[-1][0]
+    start_time, end_time = events[0][1].timestamp, events[-1][1].timestamp
 
     if inspect.isclass(start):
 
@@ -50,14 +94,13 @@ def _generate_task_intervals(
     def _gen():
         for t, event in events:
             if start(event):
-                yield t, event.task, start.__name__
+                yield event.timestamp, event.task, start.__name__
             elif end(event):
-                yield t, event.task, end.__name__
+                yield event.timestamp, event.task, end.__name__
 
     for task, df in pd.DataFrame(_gen(), columns=["timestamp", "task", "type"]).groupby(
         "task"
     ):
-        # print(task, df)
         # remove consective duplicates, these are meaningless (there shouldnt be any...?)
         df = dedup(df.reset_index(drop=True), col="type").reset_index(drop=True)
         # insert events if needed
@@ -71,7 +114,7 @@ def _generate_task_intervals(
                 [df, pd.DataFrame([{"timestamp": end_time, "type": end.__name__}])]
             ).reset_index(drop=True)
 
-        assert len(df) % 2 == 0  # must be an event number to create intervals!
+        assert len(df) % 2 == 0  # must be an even number to create intervals!
         intervals = df["timestamp"].to_numpy().reshape(-1, 2)
         yield task, intervals
 

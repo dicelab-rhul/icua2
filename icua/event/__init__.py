@@ -1,5 +1,7 @@
 """Package defines or includes many useful event classes including task, guidance, UI, user input and XML/SVG related events."""
 
+from star_ray import Event
+
 from star_ray_pygame.event import (
     MouseButtonEvent,
     MouseMotionEvent,
@@ -113,4 +115,5 @@ __all__ = (
     "HideElementAction",
     # misc
     "RenderEvent",
+    "Event",
 )

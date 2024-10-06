@@ -1,19 +1,20 @@
-import logging
-import pathlib
-from datetime import datetime
+import os
+import sys
 import time
+import logging
+
+from datetime import datetime
+from pathlib import Path
 from pydantic import BaseModel
+from loguru import logger as _logger
+from loguru._logger import Logger  # this is just a type hint
+
+__all__ = ("Logger", "LOGGER")
+
 from star_ray.pubsub import Subscriber
 
 
-from loguru import logger as _logger
-from pathlib import Path
-import os
-import sys
-
 _CWD_DIRECTORY = Path(os.getcwd())
-# TODO remove this...
-_PROJECT_ROOT_DIRECTORY = "C:/Users/brjw/Documents/repos/dicelab"
 
 
 def format_record(record):
@@ -65,8 +66,8 @@ class EventLogger(Subscriber):
     def __init__(self, path: str = None):
         path = path if path is not None else EventLogger.default_log_path()
         if isinstance(path, str):
-            path = pathlib.Path(path).expanduser().resolve()
-        pathlib.Path(path).parent.mkdir(exist_ok=True)
+            path = Path(path).expanduser().resolve()
+        Path(path).parent.mkdir(exist_ok=True)
         self.path = str(path)
         self.logger = logging.getLogger(f"{path.name.split('.')[0]}_event_logger")
         self.logger.setLevel(logging.INFO)
@@ -94,5 +95,5 @@ class EventLogger(Subscriber):
         name = name if name is not None else f"event_log_{timestamp}.log"
         if "{datetime}" in name:
             name = name.format(datetime=timestamp)
-        default_filename = pathlib.Path(path, name).expanduser().resolve()
+        default_filename = Path(path, name).expanduser().resolve()
         return default_filename

@@ -39,7 +39,7 @@ class GuidanceAgent(AgentRouted):
             sensors (list[Sensor]): list of sensors, this will typically be a list of `icua.agent.TaskAcceptabilitySensor`s. A `UserInputSensor` will always be added automatically.
             actuators (list[Actuator]): list of actuators, this will typically contain actuators that are capable of providing visual feedback to a user, see e.g. `icua.agent.GuidanceActuator` and its concrete implementations.
             user_input_events (tuple[type[Event]], optional): additional user input events to subscribe to. Defaults to None.
-            user_input_events_history_size (int | list[int], optional): _description_. Defaults to 50.
+            user_input_events_history_size (int | list[int], optional): size of the history of user input events to keep, when this size is reached old events will be overwritten. Defaults to 50.
         """
         # this is the guidance agents main sensor, it will sense:
         # user input events (typically) MouseButtonEvent, MouseMotionEvent, KeyEvent
@@ -56,7 +56,7 @@ class GuidanceAgent(AgentRouted):
             [_task_acceptability_actuator, *actuators],
         )
         # agent's beliefs store
-        self.beliefs = defaultdict(lambda: None)
+        self.beliefs = dict()
         # track the acceptability of each task
         self._is_task_acceptable: dict[str, bool] = defaultdict(lambda: False)
         self._is_task_active: dict[str, bool] = defaultdict(lambda: False)
@@ -66,6 +66,7 @@ class GuidanceAgent(AgentRouted):
             user_input_events_history_size = [user_input_events_history_size] * len(
                 user_input_events
             )
+        # TODO use a default dict for this, what if additional subscriptions are made in the UserInputSensor!
         self._user_input_events = {
             t: deque(maxlen=hsize)
             for t, hsize in zip(user_input_events, user_input_events_history_size)
@@ -108,6 +109,7 @@ class GuidanceAgent(AgentRouted):
     @property
     def user_input_types(self):
         """The types of user input that this agent is tracking (READ ONLY)."""
+        # TODO this should be retrieved directly from the UserInputSensor, we dont want copies of this around...
         return tuple(self._user_input_events.keys())
 
     def get_latest_user_input(self, event_type: type, n: int = 1) -> Iterator[Event]:
@@ -154,7 +156,7 @@ class GuidanceAgent(AgentRouted):
         - `on_active(self, task: str)`
         - `on_inactive(self, task: str)`
 
-        This method should not be called manually and will be handled by this agents event routing mechanism.
+        This method should not be called manually and will be handled by this agent's event routing mechanism.
 
         Args:
             observation (TaskAcceptabilityObservation): the acceptability observation

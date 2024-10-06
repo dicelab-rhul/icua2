@@ -5,7 +5,7 @@ from .plot import (
     plot_timestamps,
     plot_intervals,
 )
-from .get import get_guidance_intervals, get_acceptable_intervals
+from .get import get_guidance_intervals, get_acceptable_intervals, merge_intervals
 
 __all__ = (
     "EventLogParser",
@@ -13,4 +13,5 @@ __all__ = (
     "plot_intervals",
     "get_guidance_intervals",
     "get_acceptable_intervals",
+    "merge_intervals",
 )
