@@ -86,7 +86,9 @@ class Task:
     def get_avatar(self, avatar: Agent) -> Agent:
         return self._avatar_factory(avatar)
 
-    def get_agent(self) -> Agent:
+    def get_agent(self) -> Agent | None:
+        if self._agent_factory is None:
+            return None
         return self._agent_factory()
 
 
