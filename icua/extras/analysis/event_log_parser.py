@@ -165,9 +165,11 @@ class EventLogParser:
         with open(file_path) as file:
             file_iter = iter(file.readlines())
             (start_time, e) = self._parse_line(next(file_iter))
-            yield (start_time, e)
             if not relative_start:
+                yield (start_time, e)
                 start_time = 0
+            else:
+                yield (0, e)
             for line in file_iter:
                 result = self._parse_line(line)
                 if result:

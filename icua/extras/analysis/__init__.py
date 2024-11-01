@@ -18,6 +18,7 @@ from .get_user_input import (
     get_eyetracking_events,
 )
 
+
 __all__ = (
     "EventLogParser",
     "plot_timestamps",
