@@ -42,15 +42,20 @@ class EventLogParser:
         """
         for c in discover_subclasses(Event, module):
             self._event_cls_map[c.__name__] = c
+            # self._event_cls_map[self.get_fully_qualified_name(c)] = c
 
-    def get_event_log_file(self, directory: str | Path) -> str | list[str]:
-        """Locates the log file within a directory.
+    def get_fully_qualified_name(self, event_class: type[Event]) -> str:
+        """Get the fully qualified name of an event class."""
+        return event_class.__module__ + "." + event_class.__name__
+
+    def get_event_log_file(self, directory: str | Path) -> str:
+        """Locates the event log file within a directory.
 
         Args:
             directory (str | Path): path of the directory to search.
 
         Returns:
-            str | list[str]: the absolute path(s) of the log files
+            str: the absolute path of the event log file
         """
         path = Path(directory).expanduser().resolve()
         if not path.exists():
@@ -58,7 +63,7 @@ class EventLogParser:
 
         log_files = list(
             filter(
-                lambda f: f.name.startswith("event_log") or f.suffix == ".log",
+                lambda f: f.name.startswith("event_log") and f.suffix == ".log",
                 path.iterdir(),
             )
         )

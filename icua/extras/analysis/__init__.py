@@ -11,6 +11,12 @@ from .get import (
     get_acceptable_intervals,
     merge_intervals,
 )
+from .get_user_input import (
+    get_mouse_motion_events,
+    get_mouse_button_events,
+    get_keyboard_events,
+    get_eyetracking_events,
+)
 
 __all__ = (
     "EventLogParser",
@@ -20,4 +26,8 @@ __all__ = (
     "get_acceptable_intervals",
     "get_svg_as_image",
     "merge_intervals",
+    "get_mouse_motion_events",
+    "get_mouse_button_events",
+    "get_keyboard_events",
+    "get_eyetracking_events",
 )
