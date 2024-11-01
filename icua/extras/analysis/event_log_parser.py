@@ -11,6 +11,7 @@ import importlib
 import json
 import pandas as pd
 
+from icua.event import RenderEvent
 from star_ray import Event
 from ...utils import LOGGER
 
@@ -103,6 +104,7 @@ class EventLogParser:
         events: list[tuple[float, Event]],
         exclude: tuple[str] | list[str] = None,
         include: tuple[str] | list[str] = None,
+        include_frame: bool = False,
     ):
         """Converts a list of events to collection of pandas data frames containing selected fields as columns.
 
@@ -110,6 +112,7 @@ class EventLogParser:
             events (list[tuple[float, Event]]): list of events
             exclude (tuple[str] | list[str], optional): fields to exclude. Defaults to None.
             include (tuple[str] | list[str], optional): fields to include. Defaults to None.
+            include_frame (bool, optional): whether to include the frame number in the dataframe (this requires events of type `RenderEvent` to be present in `events`). Defaults to False.
 
         Returns:
             pandas.DataFrame: a dataframe for each event type: event_type -> dataframe
@@ -118,11 +121,14 @@ class EventLogParser:
             ValueError: if multiple event types are found in the list, make use of `filter_events` before calling this, or use `as_dataframes`.
         """
         event_types = self.get_event_types(events)
+        event_types.remove(RenderEvent)
         if len(event_types) > 1:
             raise ValueError(
                 f"Found more than one event type when converting events to dataframe, use `as_dataframes` if you want to convert an unfiltered list of events. Event types found: {event_types}"
             )
-        result = self.as_dataframes(events, include=include, exclude=exclude)
+        result = self.as_dataframes(
+            events, include=include, exclude=exclude, include_frame=include_frame
+        )
         assert len(result.keys()) == 1
         return next(iter(result.values()))
 
@@ -131,6 +137,7 @@ class EventLogParser:
         events: list[tuple[float, Event]],
         exclude: tuple[str] | list[str] = None,
         include: tuple[str] | list[str] = None,
+        include_frame: bool = False,
     ) -> dict[type[Event], pd.DataFrame]:
         """Converts a list of events to collection of pandas data frames containing selected fields as columns.
 
@@ -138,18 +145,30 @@ class EventLogParser:
             events (list[tuple[float, Event]]): list of events
             exclude (tuple[str] | list[str], optional): fields to exclude. Defaults to None.
             include (tuple[str] | list[str], optional): fields to include. Defaults to None.
+            include_frame (bool, optional): whether to include the frame number in the dataframe (this requires events of type `RenderEvent` to be present in `events`). Defaults to False.
 
         Returns:
             dict[type[Event], pandas.DataFrame]: a dataframe for each event type: event_type -> dataframe
         """
         data = defaultdict(list)
+        frame = 0
+        log_timestamps = (include is None or "timestamp_log" in include) and (
+            exclude is None or "timestamp_log" not in exclude
+        )
         for t, event in events:
+            if isinstance(event, RenderEvent):
+                frame += 1
+                continue
             x = event.model_dump(include=include, exclude=exclude)
-            if (include is None or "timestamp_log" in include) and (
-                exclude is None or "timestamp_log" not in exclude
-            ):
+            if log_timestamps:
                 x["timestamp_log"] = t
+            if include_frame:
+                x["frame"] = frame
             data[type(event)].append(x)
+        if include_frame and frame == 0:
+            raise ValueError(
+                "No `RenderEvent`s were found in the event log but `include_frame = True`, did you forget to include `RenderEvent` in your event filter?"
+            )
         return {k: pd.DataFrame(v) for k, v in data.items()}
 
     def parse(self, file_path: str | Path, relative_start: bool = True):
