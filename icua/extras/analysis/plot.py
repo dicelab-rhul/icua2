@@ -17,7 +17,7 @@ def _get_fig_ax(ax: plt.Axes | None = None):
 
 
 def plot_intervals(
-    timestamps: np.ndarray,
+    intervals: np.ndarray,
     color: str = "blue",
     alpha: float = 1.0,
     # linestyle: str = "-",
@@ -27,10 +27,10 @@ def plot_intervals(
     ax: plt.Axes | None = None,
 ):
     """TODO."""
-    assert len(timestamps.shape) == 2
-    assert timestamps.shape[1] == 2
+    assert len(intervals.shape) == 2
+    assert intervals.shape[1] == 2
     fig, ax = _get_fig_ax(ax)
-    for interval in timestamps:
+    for interval in intervals:
         ax.axvspan(
             interval[0],
             interval[1],
@@ -42,11 +42,52 @@ def plot_intervals(
             # linewidth=linewidth,
         )
     (xmin, xmax) = ax.get_xlim()
-    ax.set_xlim(min(xmin, timestamps.min()), max(xmax, timestamps.max()))
+    ax.set_xlim(min(xmin, intervals.min()), max(xmax, intervals.max()))
     return fig
 
 
 def plot_timestamps(
+    timestamps: np.ndarray,
+    color: str = "blue",
+    alpha: float = 1.0,
+    linestyle: str = "-",
+    linewidth: float = 1.0,
+    ymin: float = 0.0,
+    ymax: float = 1.0,
+    ax: plt.Axes | None = None,
+):
+    """Plot timestamps as vertical lines on an axis.
+
+    Args:
+        timestamps (np.ndarray): Timestamps to plot.
+        color (str, optional): Color of the lines. Defaults to "blue".
+        alpha (float, optional): Alpha value for the lines. Defaults to 1.0.
+        linestyle (str, optional): Line style for the lines. Defaults to "-".
+        linewidth (float, optional): Line width for the lines. Defaults to 1.0.
+        ymin (float, optional): Minimum y-value for the lines. Defaults to 0.0.
+        ymax (float, optional): Maximum y-value for the lines. Defaults to 1.0.
+        ax (plt.Axes | None, optional): matplotlib axes to use. Defaults to None.
+
+    Returns:
+        figure: Matplotlib figure containing the plot.
+    """
+    fig, ax = _get_fig_ax(ax)
+    for t in timestamps:
+        ax.axvline(
+            t,
+            ymin=ymin,
+            ymax=ymax,
+            color=color,
+            linestyle=linestyle,
+            linewidth=linewidth,
+            alpha=alpha,
+        )
+    (xmin, xmax) = ax.get_xlim()
+    ax.set_xlim(min(xmin, timestamps.min()), max(xmax, timestamps.max()))
+    return fig
+
+
+def plot_events(
     events: list[tuple[float, Event]],
     cls: type,
     mode: Literal["log", "event"] = "log",

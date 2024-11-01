@@ -10,6 +10,7 @@ from .get import (
     get_guidance_intervals,
     get_acceptable_intervals,
     merge_intervals,
+    isin_intervals,
 )
 from .get_user_input import (
     get_mouse_motion_events,
@@ -27,6 +28,7 @@ __all__ = (
     "get_acceptable_intervals",
     "get_svg_as_image",
     "merge_intervals",
+    "isin_intervals",
     "get_mouse_motion_events",
     "get_mouse_button_events",
     "get_keyboard_events",

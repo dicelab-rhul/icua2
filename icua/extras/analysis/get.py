@@ -106,6 +106,26 @@ def dedup(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return df[df[col] != df[col].shift()]
 
 
+def isin_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
+    """Computes a boolean array which indicates whether each timestamp is within an interval in `intervals`, start inclusive, end exclusive.
+
+    Args:
+        timestamps (np.ndarray): a 1D array of timestamps.
+        intervals (np.ndarray): a 2D array of intervals, where each row is an interval (start, end).
+
+    Returns:
+        np.ndarray: a 1D boolean array which is True for each timestamp that is within an interval.
+    """
+    assert len(intervals.shape) == 2
+    assert intervals.shape[1] == 2
+    # TODO this is quite slow for many intervals... can do it faster if we sort the arrays
+    result = np.zeros(timestamps.shape, dtype=bool)
+    for start, end in intervals:
+        # Update the result array for timestamps within the current interval
+        result |= (timestamps >= start) & (timestamps < end)
+    return result
+
+
 def _generate_task_intervals(
     events: list[tuple[float, Event]],
     start: type | Callable[[Event], bool],
