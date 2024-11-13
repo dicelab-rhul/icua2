@@ -2,12 +2,13 @@
 
 from typing import Any
 from collections.abc import Iterator
-from collections import defaultdict, deque
+from collections import deque
 from itertools import islice
+from icua.agent.actuator_guidance import GuidanceActuator
 from star_ray.agent import AgentRouted, Component, Sensor, Actuator, observe
 from star_ray.event import Event, ErrorObservation, ErrorActiveObservation
 
-from .sensor_acceptability import TaskAcceptabilityObservation
+from .sensor_acceptability import TaskAcceptabilityObservation, TaskAcceptabilitySensor
 from .sensor_userinput import UserInputSensor
 from .actuator_acceptability import TaskAcceptabilityActuator
 from ..event import TaskAcceptable, TaskUnacceptable
@@ -41,6 +42,8 @@ class GuidanceAgent(AgentRouted):
             user_input_events (tuple[type[Event]], optional): additional user input events to subscribe to. Defaults to None.
             user_input_events_history_size (int | list[int], optional): size of the history of user input events to keep, when this size is reached old events will be overwritten. Defaults to 50.
         """
+        # agent's beliefs store
+        self.beliefs = dict()
         # this is the guidance agents main sensor, it will sense:
         # user input events (typically) MouseButtonEvent, MouseMotionEvent, KeyEvent
         user_input_events = user_input_events if user_input_events else []
@@ -55,12 +58,6 @@ class GuidanceAgent(AgentRouted):
             [user_input_sensor, *sensors],
             [_task_acceptability_actuator, *actuators],
         )
-        # agent's beliefs store
-        self.beliefs = dict()
-        # track the acceptability of each task
-        self._is_task_acceptable: dict[str, bool] = defaultdict(lambda: False)
-        self._is_task_active: dict[str, bool] = defaultdict(lambda: False)
-
         # set up buffers for storing user input events
         if isinstance(user_input_events_history_size, int):
             user_input_events_history_size = [user_input_events_history_size] * len(
@@ -73,6 +70,36 @@ class GuidanceAgent(AgentRouted):
         }
         # add an observe method to capture all user input events (based on the UserInputSensor types)
         self.add_observe(self.on_user_input, self.user_input_types)
+
+    def add_component(self, component: Component) -> Component:  # noqa
+        result = super().add_component(component)
+        # initialise beliefs for the new task
+        if isinstance(result, TaskAcceptabilitySensor):
+            self.beliefs[result.task_name] = dict(is_active=False, is_acceptable=False)
+        return result
+
+    @property
+    def acceptability_sensors(self) -> list[TaskAcceptabilitySensor]:
+        """Getter for task acceptability sensors (sensors that derive the type: `icua.agent.TaskAcceptabilitySensor`).
+
+        Returns:
+            list[TaskAcceptabilitySensor]: the sensors.
+        """
+        return list(self.get_sensors(oftype=TaskAcceptabilitySensor))
+
+    @property
+    def guidance_actuators(self) -> list[GuidanceActuator]:
+        """Getter for guidance actuators (actuators that derive the type: `icua.agent.GuidanceActuator`).
+
+        Returns:
+            list[GuidanceActuator]: the GuidanceActuator.
+        """
+        candidates = list(self.get_actuators(oftype=GuidanceActuator))
+        if len(candidates) == 0:
+            raise ValueError(
+                f"Missing required actuator of type: `{GuidanceActuator.__qualname__}`"
+            )
+        return candidates
 
     def on_acceptable(self, task: str):
         """Called when a task enters an acceptable state.
@@ -162,12 +189,12 @@ class GuidanceAgent(AgentRouted):
             observation (TaskAcceptabilityObservation): the acceptability observation
         """
         task = observation.values["task"]
-        was_active = self._is_task_active[task]
-        was_acceptable = self._is_task_acceptable[task]
+        was_active = self.beliefs[task]["is_active"]
+        was_acceptable = self.beliefs[task]["is_acceptable"]
         is_active = observation.values["is_active"]
         is_acceptable = observation.values["is_acceptable"]
-        self._is_task_active[task] = is_active
-        self._is_task_acceptable[task] = is_acceptable
+        self.beliefs[task]["is_active"] = is_active
+        self.beliefs[task]["is_acceptable"] = is_acceptable
         if was_active and not is_active:
             self.on_inactive(task)
         elif not was_active and is_active:
@@ -191,3 +218,48 @@ class GuidanceAgent(AgentRouted):
         # print("USER INPUT:", observation)
         assert isinstance(observation, self.user_input_types)
         self._user_input_events[type(observation)].appendleft(observation)
+
+    @property
+    def monitoring_tasks(self) -> set[str]:
+        """Get the set of tasks that this guidance agent is monitoring.
+
+        Returns:
+            set[str]: set of tasks that this agent is monitoring.
+        """
+        return set([s.task_name for s in self.acceptability_sensors])
+
+    @property
+    def active_tasks(self) -> set[str]:
+        """Get the set of active tasks.
+
+        Returns:
+            set[str]: set of active tasks.
+        """
+        return set(t for t in self.monitoring_tasks if self.beliefs[t]["is_active"])
+
+    @property
+    def inactive_tasks(self) -> set[str]:
+        """Get the set of inactive tasks.
+
+        Returns:
+            set[str]: set of inactive tasks.
+        """
+        return set(t for t in self.monitoring_tasks if not self.beliefs[t]["is_active"])
+
+    @property
+    def acceptable_tasks(self) -> set[str]:
+        """Get the set of acceptable tasks, these do not include inactive tasks.
+
+        Returns:
+            set[str]: set of acceptable tasks.
+        """
+        return set(t for t in self.active_tasks if self.beliefs[t]["is_acceptable"])
+
+    @property
+    def unacceptable_tasks(self) -> set[str]:
+        """Get the set of unacceptable tasks, these do not include inactive tasks.
+
+        Returns:
+            set[str]: set of unacceptable tasks.
+        """
+        return set(t for t in self.active_tasks if not self.beliefs[t]["is_acceptable"])

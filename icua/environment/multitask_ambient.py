@@ -241,7 +241,8 @@ class MultiTaskAmbient(SVGAmbient):
         # default is to insert as the first child of the root
         # TODO we need to check what the task 'id' is to keep track of which tasks are enabled and active!
         return self.__update__(
-            Insert.new(
+            Insert(
+                source=self.id,
                 xpath="/svg:svg",
                 element=task.get_xml(event.context),
                 index=event.insert_at,

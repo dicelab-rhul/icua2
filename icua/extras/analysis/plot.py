@@ -3,6 +3,7 @@
 from typing import Literal
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from star_ray import Event
 
 
@@ -24,9 +25,15 @@ def plot_intervals(
     # linewidth: float = 1.0,
     ymin: float = 0.0,
     ymax: float = 1.0,
+    label: str | None = None,
     ax: plt.Axes | None = None,
 ):
     """TODO."""
+    if isinstance(intervals, pd.DataFrame):
+        intervals = intervals[["t1", "t2"]].to_numpy()
+    if intervals.shape[0] == 0:
+        return _get_fig_ax(ax)[0]
+
     assert len(intervals.shape) == 2
     assert intervals.shape[1] == 2
     fig, ax = _get_fig_ax(ax)
@@ -40,7 +47,9 @@ def plot_intervals(
             ymax=ymax,
             # linestyle=linestyle,
             # linewidth=linewidth,
+            label=label,
         )
+        label = None
     (xmin, xmax) = ax.get_xlim()
     ax.set_xlim(min(xmin, intervals.min()), max(xmax, intervals.max()))
     return fig
@@ -54,6 +63,7 @@ def plot_timestamps(
     linewidth: float = 1.0,
     ymin: float = 0.0,
     ymax: float = 1.0,
+    label: str | None = None,
     ax: plt.Axes | None = None,
 ):
     """Plot timestamps as vertical lines on an axis.
@@ -66,6 +76,7 @@ def plot_timestamps(
         linewidth (float, optional): Line width for the lines. Defaults to 1.0.
         ymin (float, optional): Minimum y-value for the lines. Defaults to 0.0.
         ymax (float, optional): Maximum y-value for the lines. Defaults to 1.0.
+        label (str | None, optional): Label for the lines. Defaults to None.
         ax (plt.Axes | None, optional): matplotlib axes to use. Defaults to None.
 
     Returns:
@@ -81,9 +92,12 @@ def plot_timestamps(
             linestyle=linestyle,
             linewidth=linewidth,
             alpha=alpha,
+            label=label,
         )
+        label = None
     (xmin, xmax) = ax.get_xlim()
-    ax.set_xlim(min(xmin, timestamps.min()), max(xmax, timestamps.max()))
+    _min, _max = timestamps.min(), timestamps.max()
+    ax.set_xlim(min(xmin, _min - (_min * 0.02)), max(xmax, _max + (_max * 0.02)))
     return fig
 
 

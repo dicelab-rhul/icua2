@@ -7,7 +7,8 @@ from star_ray.agent import Agent, Actuator, attempt
 from star_ray.event import Action
 from ..utils import LOGGER
 from ..event import (
-    MouseMotionEvent, EyeMotionEvent,
+    MouseMotionEvent,
+    EyeMotionEvent,
     DrawArrowAction,
     DrawBoxOnElementAction,
     ShowElementAction,
@@ -59,7 +60,8 @@ class BoxGuidanceActuator(GuidanceActuator):
         self._box_stroke_color = box_stroke_color
         self._box_stroke_width = box_stroke_width
         self._guidance_box_id_template = "guidance_box_%s"
-        # ids of each of the guidance boxes that have been created TODO this should be removed when `on_remove` is called!
+        # ids of each of the guidance boxes that have been created
+        # TODO they should be removed when `on_remove` is called!
         self._guidance_boxes = set()
 
     def on_remove(self, agent: Agent) -> None:  # noqa
@@ -144,7 +146,13 @@ class BoxGuidanceActuator(GuidanceActuator):
 
 
 class ArrowGuidanceActuator(GuidanceActuator):
-    """A concrete implementation of `GuidanceActuator` that implements a guidance arrow. The arrow is displayed at the users mouse (or gaze) position that points towards a given task element, typically this task will be one that is not in an acceptible state."""
+    """A concrete implementation of `GuidanceActuator` that implements a guidance arrow.
+
+    The arrow can be displayed in three different ways depending on the value of `arrow_mode`:
+    - "gaze" will display the arrow at the users gaze position, offset by `arrow_offset`.
+    - "mouse" will display the arrow at the users mouse position, offset by `arrow_offset`.
+    - "fixed" will display the arrow at a fixed position on the screen, this position is specified by `arrow_offset`.
+    """
 
     ARROW_MODES = Literal["gaze", "mouse", "fixed"]
 
@@ -160,15 +168,12 @@ class ArrowGuidanceActuator(GuidanceActuator):
         """Constructor.
 
         Args:
-            arrow_mode (Literal): modes for arrow display,
+            arrow_mode (Literal["gaze", "mouse", "fixed"]): modes for arrow display.
             arrow_scale (float, optional): scale of the arrow. Defaults to 1.0.
             arrow_fill_color (str, optional): fill colour of the arrow. Defaults to "none".
-            arrow_stroke_color (str, optional): line colour of the arrow outlien. Defaults to "#ff0000".
+            arrow_stroke_color (str, optional): line colour of the arrow outline. Defaults to "#ff0000".
             arrow_stroke_width (float, optional): line width of the arrow outline. Defaults to 4.0.
-            arrow_offset (tuple[float, float], optional): offset of the arrow from its set position. Defaults to (80, 80).
-
-        Raises:
-            ValueError: _description_
+            arrow_offset (tuple[float, float], optional): offset of the arrow from its set position. This is the position used if `arrow_mode == "fixed". Defaults to (80, 80).
         """
         super().__init__()
         self._arrow_mode = arrow_mode

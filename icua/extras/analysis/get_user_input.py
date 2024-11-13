@@ -4,6 +4,7 @@ import pandas as pd
 from icua.extras.eyetracking import EyeMotionEvent
 from icua.event import Event, MouseMotionEvent, MouseButtonEvent, KeyEvent, RenderEvent
 from . import EventLogParser
+from .get import dedup
 
 
 def get_keyboard_events(
@@ -66,6 +67,66 @@ def get_eyetracking_events(
     eye_motion_df["y"] = eye_motion_df["position"].apply(lambda p: p[1])
     eye_motion_df.drop(columns=["position"], inplace=True)
     return eye_motion_df[COLUMNS]
+
+
+def get_attention_intervals(
+    df: pd.DataFrame, tasks: set[str] | None = None, return_none: bool = False
+):
+    """Get attention intervals (which task the user is attending to) from a dataframe that contains the "target" and "timestamp" columns.
+
+    This column is part of:
+    - mouse motion events: `get_mouse_motion_events`
+    - mouse button events: `get_mouse_button_events`
+    - eyetracking events: `get_eyetracking_events`
+    - fixation events: `get_fixation_events` (COMING SOON)
+
+    Intervals for missing tasks will be empty but still be yielded.
+
+    Args:
+        df (pd.DataFrame): dataframe with columns: ["timestamp", "target"]
+        tasks (set[str] | None, optional): tasks to get attention intervals for. Defaults to all matbii tasks.
+        return_none (bool, optional): whether to return intervals for which the user is not attending to any task. Defaults to False.
+
+    Yields:
+        (str, np.ndarray): a tuple containing the task name and the associated attention intervals.
+    """
+    if tasks is None:
+        tasks = set(["system_monitoring", "tracking", "resource_management"])
+
+    if "target" not in df.columns:
+        raise ValueError("df must contain a 'target' column")
+
+    def _get_attending_task(targets: list[str]) -> str:
+        attending_task = set(targets) & tasks
+        if len(attending_task) == 0:
+            return "none"
+        elif len(attending_task) == 1:
+            return attending_task.pop()
+        else:
+            raise ValueError(f"Multiple tasks attended at once: {attending_task}")
+
+    # using the target column
+    df["target"] = df["target"].apply(_get_attending_task)
+
+    # remove consective duplicate rows from the dataframe
+    df = dedup(df, "target").copy()
+    # use consecutive rows to get the start and end times of the intervals
+    df["t2"] = df["timestamp"].shift(-1)
+    df.rename(columns={"timestamp": "t1"}, inplace=True)
+    df.drop(df.index[-1], inplace=True)
+    tasks_found = set()
+    for task, task_df in df[["t1", "t2", "target"]].groupby("target"):
+        tasks_found.add(task)
+        if task == "none":
+            if return_none:
+                yield task, task_df[["t1", "t2"]].to_numpy()
+        else:
+            yield task, task_df[["t1", "t2"]].to_numpy()
+
+    # yield an empty dataframe for tasks that were not found
+    tasks_not_found = tasks - tasks_found
+    for task in tasks_not_found:
+        yield task, pd.DataFrame(columns=["t1", "t2"]).to_numpy()
 
 
 def get_mouse_motion_events(

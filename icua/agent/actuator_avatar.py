@@ -9,10 +9,8 @@ class AvatarActuator(Actuator):
     """This actuator will forward all user generated events to the environment. Other agents may subscribe to receive these events, otherwise they will simply be logged. It may also be used to produce `RenderEvent`s which should be taken at the START of the UI rendering step performed by the avatar."""
 
     @attempt
-    def render(self, action: RenderEvent = None):
+    def render(self, action: RenderEvent):
         """Attempt method that will attempt a `RenderEvent`."""
-        if action is None:
-            return RenderEvent()
         return action
 
     @attempt

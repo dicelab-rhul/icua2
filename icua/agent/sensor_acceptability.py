@@ -110,7 +110,7 @@ class TaskAcceptabilitySensor(Sensor):
             attributes = []
         if "id" not in attributes:
             attributes.append("id")
-        return Select(source=self.id, xpath=xpath, attrs=attributes)
+        return Select(xpath=xpath, attrs=attributes)
 
     def iter_observations(self):  # noqa
         yield from self._errors
@@ -118,14 +118,12 @@ class TaskAcceptabilitySensor(Sensor):
         is_active = self.is_active(self.task_name)
         if not is_active:
             yield TaskAcceptabilityObservation(
-                source=self.id,
                 values=dict(
                     task=self.task_name, is_active=is_active, is_acceptable=False
                 ),
             )
         else:
             yield TaskAcceptabilityObservation(
-                source=self.id,
                 values=dict(
                     task=self.task_name,
                     is_active=is_active,

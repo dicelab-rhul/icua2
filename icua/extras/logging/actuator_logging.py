@@ -89,7 +89,9 @@ class LogActuator(Actuator):
         Returns:
             LoguruAction: log action
         """
-        return LogAction(source=self.id, message=message)
+        action = LogAction(source=self.id, message=message)
+        Actuator.set_action_source(self, action)
+        return action
 
     def __query__(self, _) -> None:
         """By-passes the usual environment interaction and directly log what has been buffered by the attached agent."""

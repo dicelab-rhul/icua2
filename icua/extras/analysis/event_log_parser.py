@@ -74,8 +74,9 @@ class EventLogParser:
             raise ValueError(f"Multiple log files found in {path.as_posix()}")
         return log_files[0].as_posix()
 
+    @classmethod
     def filter_events(
-        self, events: list[tuple[float, Event]], type: type[E]
+        cls, events: list[tuple[float, Event]], type: type[E]
     ) -> list[tuple[float, E]]:
         """Filters the list of events to contain only those of the given `type`.
 
@@ -121,7 +122,13 @@ class EventLogParser:
             ValueError: if multiple event types are found in the list, make use of `filter_events` before calling this, or use `as_dataframes`.
         """
         event_types = self.get_event_types(events)
-        event_types.remove(RenderEvent)
+        if RenderEvent in event_types:
+            event_types.remove(RenderEvent)
+        elif include_frame:
+            raise ValueError(
+                "No `RenderEvent`s were found in the event log but `include_frame = True`, did you forget to include `RenderEvent` in your event filter?"
+            )
+
         if len(event_types) > 1:
             raise ValueError(
                 f"Found more than one event type when converting events to dataframe, use `as_dataframes` if you want to convert an unfiltered list of events. Event types found: {event_types}"
@@ -129,7 +136,13 @@ class EventLogParser:
         result = self.as_dataframes(
             events, include=include, exclude=exclude, include_frame=include_frame
         )
-        assert len(result.keys()) == 1
+        if len(result) == 0:
+            # no events were found... this can happen if all the events were filtered out.
+            if include_frame and "frame" not in include:
+                columns = [*include, "frame"]
+            else:
+                columns = [*include]
+            return pd.DataFrame(columns=columns)
         return next(iter(result.values()))
 
     def as_dataframes(
