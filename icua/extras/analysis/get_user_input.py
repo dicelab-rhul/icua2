@@ -35,6 +35,29 @@ def get_keyboard_events(
     return keyboard_df[COLUMNS]
 
 
+def get_fixation_events(
+    parser: EventLogParser, events: list[tuple[float, Event]]
+) -> pd.DataFrame:
+    """Get fixation events from a list of events. Note that these events have been processed by filters that smooths and computes fixation information.
+
+    Columns:
+    - timestamp: float - the timestamp of the event. This is not the logging timestamp, but the approximate timestamp of when user actually provided the input.
+    - frame: int - the frame number of the event, events with a frame number of 0 happen BEFORE the first frame is rendered to the user.
+    - x: float - the x position of the mouse when the event occurred.
+    - y: float - the y position of the mouse when the event occurred.
+    - target: list[str] - the ids of the UI elements that the mouse is hovering over.
+
+    Args:
+        parser (EventLogParser): parser used to parse the event log file.
+        events (list[tuple[float, Event]]): list of events that were parsed from the event log file.
+
+    Returns:
+        pd.DataFrame: dataframe with columns: (timestamp, x, y, fixated, target)
+    """
+    df = get_eyetracking_events(parser, events)
+    return df[df["fixated"]].drop(columns=["fixated"]).copy()
+
+
 def get_eyetracking_events(
     parser: EventLogParser, events: list[tuple[float, Event]]
 ) -> pd.DataFrame:
@@ -95,6 +118,11 @@ def get_attention_intervals(
 
     if "target" not in df.columns:
         raise ValueError("df must contain a 'target' column")
+
+    if df.empty:
+        for task in tasks:
+            yield task, pd.DataFrame(columns=["t1", "t2"]).to_numpy()
+        return
 
     def _get_attending_task(targets: list[str]) -> str:
         attending_task = set(targets) & tasks

@@ -14,6 +14,7 @@ from star_ray_pygame.event import (
     ScreenSizeEvent,
 )
 
+
 from star_ray_xml import (
     XMLQuery,
     XMLUpdateQuery,

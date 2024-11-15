@@ -128,7 +128,7 @@ def isin_intervals(timestamps: np.ndarray, intervals: np.ndarray) -> np.ndarray:
     return result
 
 
-def _generate_task_intervals(
+def _generate_intervals(
     events: list[tuple[float, Event]],
     start: type | Callable[[Event], bool],
     end: type | Callable[[Event], bool],
@@ -137,6 +137,8 @@ def _generate_task_intervals(
     start_time: float | None = None,
     end_time: float | None = None,
 ):
+    # this should only be used for events are timed by event.timestamp
+    # and NOT for events that are timed using the logging timestamp.
     if start_time is None:
         start_time = events[0][1].timestamp
 
@@ -196,23 +198,6 @@ def _generate_task_intervals(
         yield task, intervals
 
 
-# def get_mouse_click_intervals(events: list[tuple[float, Event]]):
-#     def mouse_down(event: MouseButtonEvent):
-#         return event.status == MouseButtonEvent.DOWN
-
-#     def mouse_up(event: MouseButtonEvent):
-#         return event.status == MouseButtonEvent.UP
-
-#     yield from _generate_task_intervals(events, mouse_down, mouse_up)
-
-
-# def get_mouse_down_on(events: list[tuple[float, Event]], element: str) -> np.ndarray:
-#     events = filter(
-#         lambda x: isinstance(x[1], MouseButtonEvent) and element in x[1].target, events
-#     )
-#     return np.array([e[0] for e in events])
-
-
 def get_guidance_intervals(events: list[tuple[float, Event]]):
     """Generator that will get guidance intervals by task. The intervals always start with "ShowGuidance" and end with "HideGuidance".
 
@@ -225,9 +210,26 @@ def get_guidance_intervals(events: list[tuple[float, Event]]):
     start, end = ShowGuidance, HideGuidance
     start_time, end_time = get_start_and_end_time(events)
     # guidance always starts off with "ShowGuidance"
-    yield from _generate_task_intervals(
+    yield from _generate_intervals(
         events, start, end, start_time=start_time, end_time=end_time
     )
+
+
+def get_frame_timestamps(events: list[tuple[float, Event]]) -> np.ndarray:
+    """Get the frame timestamps from the event log.
+
+    This retrives the event timestamp from `RenderEvent` events. The reason we use event timestamps and not logging timestamps, is that the event timestamp is generated at the time the UI frame is rendered to the user. It provides accurate timing for when the user is able to view any changes made to the UI previously. The logging timestamp is generated when the event is logged, which is some short time after the frame was rendered.
+
+    NOTE: user input events (e.g. `MouseButtonEvent`) that happen between two frames (according to their own event timestamp) may not be visible to the user yet. They are guaranteed to be visible on the NEXT frame.
+
+    Args:
+        events (list[tuple[float, Event]]): events from event log
+
+    Returns:
+        np.ndarray: frame timestamps of shape (n,)
+    """
+    events = EventLogParser.filter_events(events, RenderEvent)
+    return np.array([e.timestamp for _, e in events])
 
 
 def get_start_and_end_time(events: list[tuple[float, Event]]):
@@ -269,7 +271,7 @@ def get_unacceptable_intervals(events: list[tuple[float, Event]]):
     end, start = TaskAcceptable, TaskUnacceptable
     start_time, end_time = get_start_and_end_time(events)
     # we will ignore the time before the task begins, but use time until the final timestamp
-    yield from _generate_task_intervals(
+    yield from _generate_intervals(
         events,
         start,
         end,
@@ -294,7 +296,7 @@ def get_acceptable_intervals(events: list[tuple[float, Event]]):
     start, end = TaskAcceptable, TaskUnacceptable
     start_time, end_time = get_start_and_end_time(events)
     # we will ignore the time before the task begins, but use time until the final timestamp
-    yield from _generate_task_intervals(
+    yield from _generate_intervals(
         events,
         start,
         end,
@@ -320,7 +322,7 @@ if __name__ == "__main__":
             yield i, A(task="task") if i % 2 == 0 else B(task="task")
 
     events = list(_events())
-    for task, intervals in _generate_task_intervals(events, A, B):
+    for task, intervals in _generate_intervals(events, A, B):
         print(task, intervals)
 
     def _events():
@@ -328,5 +330,5 @@ if __name__ == "__main__":
             yield i, A(task="task") if (i + 1) % 2 == 0 else B(task="task")
 
     events = list(_events())
-    for task, intervals in _generate_task_intervals(events, A, B):
+    for task, intervals in _generate_intervals(events, A, B):
         print(task, intervals)

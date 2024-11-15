@@ -301,7 +301,7 @@ class ArrowGuidanceActuator(GuidanceActuator):
         )
 
     @attempt()
-    def show_guidance(self, task: str):
+    def show_guidance(self, task: str) -> list[Action]:
         """Show guidance on the given task.
 
         Args:
@@ -317,7 +317,7 @@ class ArrowGuidanceActuator(GuidanceActuator):
         return actions
 
     @attempt()
-    def hide_guidance(self, task: str):
+    def hide_guidance(self, task: str) -> list[Action]:
         """Hide guidance on the given task.
 
         Args:

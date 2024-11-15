@@ -145,6 +145,35 @@ class EventLogParser:
             return pd.DataFrame(columns=columns)
         return next(iter(result.values()))
 
+    @classmethod
+    def sort_by_timestamp(
+        cls, events: list[tuple[float, Event]]
+    ) -> list[tuple[float, Event]]:
+        """Sort a list of events by their timestamp.
+
+        For task-related events - those that update the task state, logging timestamps are used (Update, Insert, ToggleLight, BurnFuelAction, etc.)
+        For user-input and flag events, the event timestamp is used (RenderEvent, ShowGuidance, TaskAcceptable, MouseButtonEvent, etc.)
+
+        Internally the `icua.event.XPathQuery` type is used, if an event inherits from this type then it is assumed to modify the state.
+
+        This gives the most consistent picture of what happened during a run, the order of the events can then be used to determine which frame each event occurred in.
+
+        Args:
+            events (list[tuple[float, Event]]): events to sort
+
+        Returns:
+            list[tuple[float, Event]]: sorted events
+        """
+        # This is the baseclass of all events that will execute some state change, for these we use the logging timestamp, otherwise we use the event timestamp.
+        from icua.event import XPathQuery
+
+        def key(event: tuple[float, Event]) -> float:
+            if isinstance(event[1], XPathQuery):
+                return event[0]
+            return event[1].timestamp
+
+        return sorted(events, key=key)
+
     def as_dataframes(
         self,
         events: list[tuple[float, Event]],
@@ -168,7 +197,7 @@ class EventLogParser:
         log_timestamps = (include is None or "timestamp_log" in include) and (
             exclude is None or "timestamp_log" not in exclude
         )
-        for t, event in events:
+        for t, event in self.sort_by_timestamp(events):
             if isinstance(event, RenderEvent):
                 frame += 1
                 continue
