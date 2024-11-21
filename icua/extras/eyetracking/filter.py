@@ -1,20 +1,63 @@
 """Module defines some common eyetracking filters that can be used with an `Eyetracker`.
 
 Filter classes:
+- `NanValidator`
 - `NWMAFilter` (Non-weighted Moving Average Filter)
 - `IVTFilter` (Velocity-Threshold Identification Filter)
 - `WindowSpaceFilter`
 
 See class documentation for details.
 """
-# TODO test the IVTFilter using mouse? It is very important that this works correctly! we can also find a good value for it by introducing some noise into the mouse position
 
 from typing import Any
 from collections import deque
 import math
+import time
 from ...utils import LOGGER
 
-__all__ = ("NWMAFilter", "WindowSpaceFilter", "IVTFilter")
+__all__ = ("NWMAFilter", "WindowSpaceFilter", "IVTFilter", "NanValidator")
+
+class NanValidator:
+
+    def __init__(self, duration: float, should_warn : bool = True, should_error : bool = False):
+        super().__init__()
+        self._duration = duration
+        self._start_time = None # set when the first nan event is received
+        self._last_event = None
+        self._should_warn = should_warn
+        self._should_error = should_error 
+        self._nan_count = 0
+
+    def __call__(self, data: dict[str, Any]) -> dict[str, Any]:
+        x, y = data["position"]
+        now = time.time()
+        # check if there has been a large gap between eyetracking events - probably there is an issue!
+        if self._last_event is not None:
+            if now - self._last_event > self._duration:
+                self._bad_eyetracker(now - self._last_event)
+        self._last_event = now
+
+        # check if we have received many nan values in a row - probably there is an issue!
+        is_nan = (x != x or y != y)
+        if is_nan:
+            self._nan_count += 1
+            if self._start_time is None:
+                self._start_time = now
+        else:
+            self._start_time = None
+        
+        # we are seeing nan values for some period of time...
+        if self._start_time is not None:
+            bad_duration = now - self._start_time
+            if bad_duration > self._duration:
+                self._bad_eyetracker(bad_duration)
+        return data
+
+    def _bad_eyetracker(self, bad_duration : float):
+        if self._should_warn:
+            LOGGER.warning(f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}")
+        if self._should_error:
+            raise ValueError(f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}")
 
 
 class NWMAFilter:  # Non-weighted moving average

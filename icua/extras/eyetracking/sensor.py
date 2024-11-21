@@ -2,7 +2,7 @@
 
 from star_ray.agent import IOSensor, attempt
 from .eyetrackerbase import EyetrackerBase
-from .filter import IVTFilter, WindowSpaceFilter, NWMAFilter
+from .filter import IVTFilter, WindowSpaceFilter, NWMAFilter, NanValidator
 from .event import EyeMotionEventRaw, EyeMotionEvent
 from ...event import WindowResizeEvent, WindowMoveEvent, ScreenSizeEvent
 
@@ -15,6 +15,8 @@ class EyetrackerIOSensor(IOSensor):
         eyetracker: EyetrackerBase,
         velocity_threshold: float = 0.1,
         moving_average: int = 10,
+        invalid_duration: float = 1,
+        should_error: bool = True,
     ):
         """Constructor.
 
@@ -22,12 +24,15 @@ class EyetrackerIOSensor(IOSensor):
             eyetracker (EyetrackerBase): base eyetracker, this is the IO device of this `IOSensor`.
             velocity_threshold (float, optional): velocity threshold for the `IVTFilter`. Defaults to 0.1.
             moving_average (int, optional): moving average window size for the `NWMAFilter`. Defaults to 10.
+            invalid_duration (float, optional): how long it is acceptable to have NaN or no eyetracking data before a warning or error is raised.
+            should_error (bool, optional): whether to raise an error if the eyetracker is sending nan values, or has not sent a value for the given duration.
         """
         super().__init__(eyetracker)
         self._ivt_filter = IVTFilter(velocity_threshold)
         nan = tuple([float("nan"), float("nan")])
         self._ws_filter = WindowSpaceFilter(nan, nan, nan)
         self._ma_filter = NWMAFilter(moving_average)
+        self._validator = NanValidator(duration=invalid_duration, should_warn=True, should_error=should_error)
 
     def __transduce__(self, events: list[EyeMotionEventRaw]) -> list[EyeMotionEvent]:
         """Converts the list of raw eyetracking events to a list of eyetracking events by appling the filters that are part of this sensor.
@@ -49,7 +54,7 @@ class EyetrackerIOSensor(IOSensor):
         # applies all filters to the each eye motion event
         for event in events:
             data = event.model_dump()
-            for filter in [self._ma_filter, self._ivt_filter, self._ws_filter]:
+            for filter in [self._validator, self._ma_filter, self._ivt_filter, self._ws_filter, ]:
                 data = filter(data)
             # NOTE: position needs to be set properly in the agent (i.e. convert to view space)
             data["position_raw"] = data["position"]
