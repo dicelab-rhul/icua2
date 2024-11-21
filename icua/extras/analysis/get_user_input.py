@@ -133,6 +133,7 @@ def get_attention_intervals(
         else:
             raise ValueError(f"Multiple tasks attended at once: {attending_task}")
 
+    df = df.copy()  # avoid possible warning setting value on slice
     # using the target column
     df["target"] = df["target"].apply(_get_attending_task)
 

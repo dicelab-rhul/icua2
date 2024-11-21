@@ -193,8 +193,9 @@ def _generate_intervals(
         # they are not useful, and just used to pad the intervals to get an even shape
         if intervals[0, 1] - intervals[0, 0] == 0:
             intervals = intervals[1:]
-        if intervals[-1, 1] - intervals[-1, 0] == 0:
-            intervals = intervals[:-1]
+        if intervals.shape[0] > 0:  # there may not be any intervals left to trim
+            if intervals[-1, 1] - intervals[-1, 0] == 0:
+                intervals = intervals[:-1]
         yield task, intervals
 
 
