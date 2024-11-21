@@ -17,18 +17,37 @@ from ...utils import LOGGER
 
 __all__ = ("NWMAFilter", "WindowSpaceFilter", "IVTFilter", "NanValidator")
 
-class NanValidator:
 
-    def __init__(self, duration: float, should_warn : bool = True, should_error : bool = False):
+class NanValidator:
+    """A filter that validates the stream of eyetracking events. It looks for long periods of inactivity or continuous Nan values, and if these reach a duration threshold then an error or warning is raised."""
+
+    def __init__(
+        self, duration: float, should_warn: bool = True, should_error: bool = False
+    ):
+        """Constructor.
+
+        Args:
+            duration (float): duration to wait before error/warning if the eyetracker is inactive or sends too many nan values.
+            should_warn (bool, optional): whether to warn if eyetracking data is deemed invalid. Defaults to True.
+            should_error (bool, optional): whether to raise an error if the eyetracking data is deemed invalid. Defaults to False.
+        """
         super().__init__()
         self._duration = duration
-        self._start_time = None # set when the first nan event is received
+        self._start_time = None  # set when the first nan event is received
         self._last_event = None
         self._should_warn = should_warn
-        self._should_error = should_error 
+        self._should_error = should_error
         self._nan_count = 0
 
     def __call__(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Checks the eyetracking data for long periods of inactivity of NaN values and raises an error (or warns) if this happens. Leaves the eyetracking input `data` unchanged.
+
+        Args:
+            data (dict[str, Any]): eyetracking data
+
+        Returns:
+            dict[str, Any]: eyetracking data
+        """
         x, y = data["position"]
         now = time.time()
         # check if there has been a large gap between eyetracking events - probably there is an issue!
@@ -38,14 +57,14 @@ class NanValidator:
         self._last_event = now
 
         # check if we have received many nan values in a row - probably there is an issue!
-        is_nan = (x != x or y != y)
+        is_nan = x != x or y != y
         if is_nan:
             self._nan_count += 1
             if self._start_time is None:
                 self._start_time = now
         else:
             self._start_time = None
-        
+
         # we are seeing nan values for some period of time...
         if self._start_time is not None:
             bad_duration = now - self._start_time
@@ -53,11 +72,15 @@ class NanValidator:
                 self._bad_eyetracker(bad_duration)
         return data
 
-    def _bad_eyetracker(self, bad_duration : float):
+    def _bad_eyetracker(self, bad_duration: float):
         if self._should_warn:
-            LOGGER.warning(f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}")
+            LOGGER.warning(
+                f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}"
+            )
         if self._should_error:
-            raise ValueError(f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}")
+            raise ValueError(
+                f"Eyetracker has received bad data for: {bad_duration:.2f}s, Nan count: {self._nan_count}"
+            )
 
 
 class NWMAFilter:  # Non-weighted moving average

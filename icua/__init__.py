@@ -1,3 +1,5 @@
+"""ICUA2 Integrated Cognitive User Assistance 2."""
+
 from .environment import MultiTaskAmbient, MultiTaskEnvironment
 from . import event
 from . import agent
